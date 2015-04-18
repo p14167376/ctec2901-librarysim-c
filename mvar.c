@@ -42,7 +42,9 @@ void put_mvar(mvar * mv, void * val)
 {
     pthread_mutex_lock(&(mv->mvar_mutex));
     while (mv->full)
+    {
         pthread_cond_wait(&(mv->mvar_empty), &(mv->mvar_mutex));
+    }
     mv->value = val;
     mv->full = 1;
     pthread_cond_broadcast(&(mv->mvar_full));

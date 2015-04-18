@@ -78,7 +78,7 @@ int msg_client_send (msg_client_t* client, any payload)
 	}
 
 	client->payload = payload;
-	queue_any_enqueue (client->msgq->messages, (any)(&client));
+	queue_any_enqueue (client->msgq->messages, (any)client);
 
 	pthread_cond_broadcast (&client->msgq->msg_waiting);
 	pthread_mutex_unlock (&client->msgq->mutex);
@@ -94,7 +94,7 @@ any msg_client_getpayload (msg_client_t* client)
 
 void msg_client_ack (msg_client_t* client)
 {
-	put_mvar(client->ack, (void*)(client->payload));
+	put_mvar(client->ack, (void*)0);//(client->payload));
 }
 
 void msg_queue_nudge (msg_queue_t* msgq)

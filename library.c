@@ -146,7 +146,7 @@ void* library_run (void* arg)
 		if (client != NULL)
 		{
 			// Process request from client...
-			printf ("MESSAGE RECEIVED: '%s'", (char*)msg_client_getpayload(client));
+			printf ("MESSAGE RECEIVED: '%s'\n", (char*)msg_client_getpayload(client));
 
 			msg_client_ack (client);
 		}
@@ -199,6 +199,7 @@ main()
 			case 'q':
 			case 'Q':
 				shutdown = 1;
+				break;
 		}
 		// nudge waiting processes...
 		msg_queue_nudge(lib->msg_queue);

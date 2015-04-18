@@ -31,6 +31,8 @@
 #define MSG_BUFFER_SIZE  128
 #define TEXT_BUFFER_SIZE 32
 
+//typedef enum {ACTION_BOOKS_REQUEST, ACTION_LOANS_REQUEST} action_t;
+
 void generate_book_msg (char* msgBuffer)
 {
 	// Add books to the library...
@@ -58,6 +60,7 @@ void generate_book_msg (char* msgBuffer)
 
 void* librarian_run (void* arg)
 {
+	int action;
 	char msgBuffer[MSG_BUFFER_SIZE];
 	msg_client_t* client = msg_client_create ((msg_queue_t*)arg);
 
@@ -67,7 +70,19 @@ void* librarian_run (void* arg)
 	while (!shutdown)
 	{
 		sleep(LIBRARIAN_DELAY);
-
+		if (!shutdown)
+		{
+			action = rand()%2;
+			switch (action)
+			{
+				case 0:
+					msg_client_send (client, "REQUEST_BOOKS");
+					break;
+				case 1:
+					msg_client_send (client, "REQUEST_LOANS");
+					break;
+			}
+		}
 	}
 
 	msg_client_release (client);
