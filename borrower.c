@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 // ds library headers
+#include "list.h"
 #include "set.h"
 
 // Project Headers
@@ -78,18 +79,21 @@ void borrower_RQST(borrower_t* brwr)
 {
 	printf ("BORROWER: Send RQST\n");
 
-	//TODO
+	set* booksWanted = new_set (int_printer, int_compare);
 
-	msg_client_send (brwr->client, "RQST");
+	// TODO add some books
+
+	msg_client_sendpayload (brwr->client, "RQST", booksWanted);
+
+	// TODO record which books were loaned
+
+	set_release(booksWanted);
 }
 
 void borrower_RTRN(borrower_t* brwr)
 {
-	printf ("BORROWER: Send RQST\n");
-
-	//TODO
-
-	msg_client_send (brwr->client, "RQST");
+	printf ("BORROWER: Send RTRN\n");
+	msg_client_sendpayload (brwr->client, "RTRN", brwr->myBooks);
 }
 
 void* borrower_run (void* arg)

@@ -120,10 +120,14 @@ void library_addbook (library_t* lib, int bookid)
 	}
 }
 
-void library_ADD(library_t* lib, char* msgText)
+void library_ADD(library_t* lib, any payload)
 {
 	assert(lib != NULL);
-	assert(msgText != NULL);
+	assert(payload != NULL);
+
+	// TODO Add the list of books to the library
+
+	/*
 	if (strncmp(msgText, "ADD(", 4) != 0)
 	{
 		printf ("LIBRARY: Badly formatted ADD command.\n");
@@ -143,33 +147,30 @@ void library_ADD(library_t* lib, char* msgText)
 		}
 		if (*msgText != 0) msgText++;
 	}
+	*/
 }
 
-void library_BOOKS(library_t* lib, char* msgText)
+void library_BOOKS(library_t* lib, any payload)
 {
 	assert(lib != NULL);
-	assert(msgText != NULL);
 	avl_any_inorder_print (lib->books, book_print);
 }
 
-void library_LOANS(library_t* lib, char* msgText)
+void library_LOANS(library_t* lib, any payload)
 {
 	assert(lib != NULL);
-	assert(msgText != NULL);
 
 }
 
-void library_RQST(library_t* lib, char* msgText)
+void library_RQST(library_t* lib, any payload)
 {
 	assert(lib != NULL);
-	assert(msgText != NULL);
 
 }
 
-void library_RTRN(library_t* lib, char* msgText)
+void library_RTRN(library_t* lib, any payload)
 {
 	assert(lib != NULL);
-	assert(msgText != NULL);
 
 }
 
@@ -184,16 +185,17 @@ void* library_run (void* arg)
 		if (client != NULL)
 		{
 			// Process request from client...
-			char* msgText = (char*)msg_client_getpayload(client);
+			char* msgName = msg_client_getmsgname(client);
+			any   payload = msg_client_getpayload(client);
 
-			if      (strncmp(msgText, "ADD",   3) == 0) library_ADD   (lib, msgText);
-			else if (strncmp(msgText, "BOOKS", 5) == 0) library_BOOKS (lib, msgText);
-			else if (strncmp(msgText, "LOANS", 5) == 0) library_LOANS (lib, msgText);
-			else if (strncmp(msgText, "RQST",  4) == 0) library_RQST  (lib, msgText);
-			else if (strncmp(msgText, "RTRN",  4) == 0) library_RTRN  (lib, msgText);
+			if      (strncmp(msgName, "ADD",   3) == 0) library_ADD   (lib, payload);
+			else if (strncmp(msgName, "BOOKS", 5) == 0) library_BOOKS (lib, payload);
+			else if (strncmp(msgName, "LOANS", 5) == 0) library_LOANS (lib, payload);
+			else if (strncmp(msgName, "RQST",  4) == 0) library_RQST  (lib, payload);
+			else if (strncmp(msgName, "RTRN",  4) == 0) library_RTRN  (lib, payload);
 			else
 			{
-				printf("Unrecognised Message Received: '%s'\n", msgText);
+				printf("Unrecognised Message Received: '%s'\n", msgName);
 			}
 
 			msg_client_ack (client);

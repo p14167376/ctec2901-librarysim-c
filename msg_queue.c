@@ -25,7 +25,8 @@ struct msg_client_impl
 {
 	msg_queue_t* msgq;
 	mvar* ack;
-	any payload;
+	char* msgName;
+	any   payload;
 };
 
 msg_queue_t* msg_queue_create()
@@ -58,7 +59,7 @@ msg_client_t* msg_client_create (msg_queue_t* msgq)
 	SAFE_MALLOC(msg_client_t, client);
 	client->msgq = msgq;
     client->ack  = new_empty_mvar();
-    // payload is set each time the client sends a request
+    // msgName & payload are set each time the client sends a request
     return client;
 }
 
@@ -68,7 +69,12 @@ void msg_client_release (msg_client_t* client)
 	SAFE_FREE(client);
 }
 
-int msg_client_send (msg_client_t* client, any payload)
+int msg_client_send (msg_client_t* client, char* msgName)
+{
+	return msg_client_sendpayload (client, msgName, NULL);
+}
+
+int msg_client_sendpayload (msg_client_t* client, char* msgName, any payload)
 {        
     pthread_mutex_lock(&(client->msgq->mutex));
     if (shutdown)
@@ -77,6 +83,7 @@ int msg_client_send (msg_client_t* client, any payload)
         return 0;
 	}
 
+	client->msgName = msgName;
 	client->payload = payload;
 	queue_any_enqueue (client->msgq->messages, (any)client);
 
@@ -85,6 +92,11 @@ int msg_client_send (msg_client_t* client, any payload)
 
 	if (take_mvar (client->ack) != NULL) return 1;
 	return 0;
+}
+
+char* msg_client_getmsgname (msg_client_t* client)
+{
+	return client->msgName;
 }
 
 any msg_client_getpayload (msg_client_t* client)
