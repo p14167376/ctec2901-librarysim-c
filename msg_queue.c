@@ -37,14 +37,6 @@ msg_queue_t* msg_queue_create()
     return msgq;
 }
 
-msg_client_t* msg_client_create (msg_queue_t* msgq)
-{
-	SAFE_MALLOC(msg_client_t, client);
-	client->msgq = msgq;
-    client->ack  = new_empty_mvar();
-    // payload is set each time the client sends a request
-}
-
 void msg_queue_release(msg_queue_t* msgq)
 {
 	// Ack and remove any waiting messages...
@@ -59,6 +51,15 @@ void msg_queue_release(msg_queue_t* msgq)
     pthread_cond_destroy(&msgq->msg_waiting);
     pthread_mutex_destroy(&msgq->mutex);
 	SAFE_FREE(msgq);
+}
+
+msg_client_t* msg_client_create (msg_queue_t* msgq)
+{
+	SAFE_MALLOC(msg_client_t, client);
+	client->msgq = msgq;
+    client->ack  = new_empty_mvar();
+    // payload is set each time the client sends a request
+    return client;
 }
 
 void msg_client_release (msg_client_t* client)

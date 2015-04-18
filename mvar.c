@@ -32,12 +32,9 @@ mvar * new_empty_mvar()
 
 void delete_mvar(mvar * mv)
 {
-    printf("pthread_cond_destroy(&(mv->mvar_full));\n");
-    pthread_cond_destroy(&(mv->mvar_full));
-    printf("pthread_cond_destroy(&(mv->mvar_empty));\n");
-    pthread_cond_destroy(&(mv->mvar_empty));
-    printf("pthread_mutex_destroy(&(mv->mvar_mutex));\n");
     pthread_mutex_destroy(&(mv->mvar_mutex));
+    pthread_cond_destroy(&(mv->mvar_empty));
+    pthread_cond_destroy(&(mv->mvar_full));
     free(mv);
 }
 

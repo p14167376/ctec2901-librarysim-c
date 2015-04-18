@@ -19,6 +19,7 @@
 #define TRACE_ON
 #include "smalloc.h"
 #include "trace.h"
+#include "mvar.h"
 #include "avl_any.h"
 #include "shutdown.h"
 #include "msg_queue.h"
@@ -167,10 +168,6 @@ main()
 	SAFE_MALLOC_ARRAY(pthread_t, threads, numThreads);
 
 	library_t* lib = library_create();
-
-	msg_client_t* client = msg_client_create (lib->msg_queue);
-	msg_client_release (client);
-
 	pthread_create(&threads[0], &attr, library_run,   (void*)lib);
 	pthread_create(&threads[1], &attr, librarian_run, (void*)lib->msg_queue);
 
