@@ -146,6 +146,7 @@ void* library_run (void* arg)
 		if (client != NULL)
 		{
 			// Process request from client...
+			printf ("MESSAGE RECEIVED: '%s'", (char*)msg_client_getpayload(client));
 
 			msg_client_ack (client);
 		}
@@ -156,6 +157,10 @@ main()
 {
 	// Read command line arguments...
 	// TODO
+	printf("\n\n");
+	printf("===============================================================================\n");
+	printf("CTEC2901: Library Simulator                                   (Barnaby Stewart)\n");
+	printf("===============================================================================\n");
 
 	pthread_attr_t attr;
 	pthread_attr_init (&attr);
@@ -209,7 +214,9 @@ main()
 
 	pthread_attr_destroy(&attr);
 
-	TRACE("Program Complete");
+	printf("-------------------------------------------------------------------------------\n");
+	printf("Program Complete\n");
+	printf("-------------------------------------------------------------------------------\n");
 	return 0;
 }
 

@@ -87,6 +87,11 @@ int msg_client_send (msg_client_t* client, any payload)
 	return 0;
 }
 
+any msg_client_getpayload (msg_client_t* client)
+{
+	return client->payload;
+}
+
 void msg_client_ack (msg_client_t* client)
 {
 	put_mvar(client->ack, (void*)(client->payload));
