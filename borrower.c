@@ -26,16 +26,15 @@
 #include "shutdown.h"
 #include "msg_queue.h"
 #include "borrower.h"
+#include "library.h"
 
 
-#define BORROWER_DELAY   5
-#define MSG_BUFFER_SIZE  128
-#define TEXT_BUFFER_SIZE 32
+#define BORROWER_DELAY        6
+#define BORROWER_MAXBOOKSRQST 5
 
 typedef struct
 {
 	msg_client_t* client;
-	char          msgBuffer[MSG_BUFFER_SIZE];
 	set*          myBooks;
 } borrower_t;
 
@@ -47,53 +46,40 @@ int  int_compare(any x, any y)
 	return  0;
 }
 
-/*
-void generate_book_msg (char* msgBuffer)
-{
-	// Add books to the library...
-	int n;
-	int firstBook = 1;
-	char textBuffer[TEXT_BUFFER_SIZE];
-	sprintf(msgBuffer, "ADD(");
-	srand(time(NULL));
-	for (n=0; n<20; n++)
-	{
-		int id = rand()%20;
-		if (firstBook)
-		{
-			firstBook=0;
-			sprintf(textBuffer, "%d", id);
-		}
-		else
-		{
-			sprintf(textBuffer, ",%d", id);
-		}
-		strcat (msgBuffer, textBuffer);
-	}
-	strcat (msgBuffer, ")");
-}
-*/
-
-
 void borrower_RQST(borrower_t* brwr)
 {
-	printf ("BORROWER: Send RQST\n");
+	assert(brwr != NULL);
+	set* tempset = new_set (int_printer, int_compare);
 
-	set* booksWanted = new_set (int_printer, int_compare);
+	int n;
+	int max = rand() % BORROWER_MAXBOOKSRQST;
+	for (n=0;n<max; n++)
+	{
+		long id = rand()%LIBRARY_MAXBOOKIDS;
+		if (!set_isin(brwr->myBooks, (any)id))
+		{
+			set_insertInto(tempset, (any)id);
+		}
+	}
+	printf ("BORROWER: Requested Books ");
+	set_print(tempset); printf("\n");
 
-	// TODO add some books
+	msg_client_send (brwr->client, "RQST", (any)tempset);
 
-	msg_client_sendpayload (brwr->client, "RQST", booksWanted);
+	printf ("BORROWER: Received Books ");
+	set_print(tempset); printf("\n");
 
 	// TODO record which books were loaned
+	set_unionWith(brwr->myBooks, tempset);
 
-	set_release(booksWanted);
+	while(!set_isempty(tempset)) set_choose_item(tempset);
+	set_release(tempset);
 }
 
 void borrower_RTRN(borrower_t* brwr)
 {
 	printf ("BORROWER: Send RTRN\n");
-	msg_client_sendpayload (brwr->client, "RTRN", brwr->myBooks);
+	msg_client_send (brwr->client, "RTRN", (any)brwr->myBooks);
 }
 
 void* borrower_run (void* arg)

@@ -13,6 +13,7 @@
 #include <pthread.h>
 
 // ds library Headers
+#include "list.h"
 #include "clist.h"
 #include "queue_any.h"
 
@@ -26,6 +27,7 @@
 #include "msg_queue.h"
 #include "library.h"
 #include "librarian.h"
+#include "borrower.h"
 
 
 typedef struct
@@ -33,7 +35,6 @@ typedef struct
 	avl_any* books;
 	msg_queue_t* msg_queue;
 } library_t;
-
 
 typedef struct book_struct
 {
@@ -126,28 +127,13 @@ void library_ADD(library_t* lib, any payload)
 	assert(payload != NULL);
 
 	// TODO Add the list of books to the library
-
-	/*
-	if (strncmp(msgText, "ADD(", 4) != 0)
-	{
-		printf ("LIBRARY: Badly formatted ADD command.\n");
-		return;
-	}
-	msgText += 4; // jump past "ADD("
-
-	int scan;
-	int bookid;
-	while (*msgText != 0)
-	{
-		scan = sscanf (msgText, "%d", &bookid);
-		if (scan == 1)
-		{
-			library_addbook(lib, bookid);
-			while (*msgText != ',' && *msgText != 0) msgText++;
-		}
-		if (*msgText != 0) msgText++;
-	}
-	*/
+	list* newbooks = (list*)payload;
+    list_goto_head(newbooks);
+    while (list_cursor_inlist(newbooks))
+    {
+		library_addbook(lib, (long)list_get_item(newbooks));
+        list_goto_next(newbooks);
+    }
 }
 
 void library_BOOKS(library_t* lib, any payload)
@@ -160,6 +146,7 @@ void library_LOANS(library_t* lib, any payload)
 {
 	assert(lib != NULL);
 
+	// TODO  List of borrowers...
 }
 
 void library_RQST(library_t* lib, any payload)
@@ -212,13 +199,15 @@ main()
 	printf("CTEC2901: Library Simulator                                   (Barnaby Stewart)\n");
 	printf("===============================================================================\n");
 
+	srand(time(NULL));
+
 	pthread_attr_t attr;
 	pthread_attr_init (&attr);
 	pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_JOINABLE);
 
 	int i;
 	int error;
-	int numBorrowers = 0;
+	int numBorrowers = 1;
 	int numThreads = 2 + numBorrowers;
 	SAFE_MALLOC_ARRAY(pthread_t, threads, numThreads);
 
@@ -226,18 +215,16 @@ main()
 	pthread_create(&threads[0], &attr, library_run,   (void*)lib);
 	pthread_create(&threads[1], &attr, librarian_run, (void*)lib->msg_queue);
 
-    /*
     // Create threads for borrowers
     for (i=2; i<numThreads; i++)
     {
-        error = pthread_create(&threads[i], &attr, sender, (void*)i);
-        if (err!=0)
+        error = pthread_create(&threads[i], &attr, borrower_run, (void*)lib->msg_queue);
+        if (error != 0)
         {
             printf("Create failed at %i\n",i);
             exit(1);
         }
     }
-    */
 
     char inputBuffer[256];
     while (!shutdown)

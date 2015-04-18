@@ -69,12 +69,7 @@ void msg_client_release (msg_client_t* client)
 	SAFE_FREE(client);
 }
 
-int msg_client_send (msg_client_t* client, char* msgName)
-{
-	return msg_client_sendpayload (client, msgName, NULL);
-}
-
-int msg_client_sendpayload (msg_client_t* client, char* msgName, any payload)
+int msg_client_send (msg_client_t* client, char* msgName, any payload)
 {        
     pthread_mutex_lock(&(client->msgq->mutex));
     if (shutdown)
