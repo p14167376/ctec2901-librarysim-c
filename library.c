@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-// Standard CTEC2901 Headers
+// ds library Headers
 #include "clist.h"
 #include "queue_any.h"
 

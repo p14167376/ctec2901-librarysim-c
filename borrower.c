@@ -1,7 +1,7 @@
 //===========================================================================
-// FILE: librarian.c
+// FILE: borrower.c
 //===========================================================================
-// Implementation file for librarian code
+// Implementation file for borrower code
 // Author: Barnaby Stewart (P14167376)
 //---------------------------------------------------------------------------
 
@@ -15,16 +15,19 @@
 #include <pthread.h>
 #include <unistd.h>
 
+// ds library headers
+#include "set.h"
+
 // Project Headers
+#define TRACE_ON
 #include "smalloc.h"
 #include "trace.h"
 #include "shutdown.h"
 #include "msg_queue.h"
-#include "librarian.h"
-#include "library.h"
+#include "borrower.h"
 
 
-#define LIBRARIAN_DELAY  5
+#define BORROWER_DELAY   5
 #define MSG_BUFFER_SIZE  128
 #define TEXT_BUFFER_SIZE 32
 
@@ -32,14 +35,20 @@ typedef struct
 {
 	msg_client_t* client;
 	char          msgBuffer[MSG_BUFFER_SIZE];
-} librarian_t;
+	set*          myBooks;
+} borrower_t;
 
-//typedef enum {ACTION_BOOKS_REQUEST, ACTION_LOANS_REQUEST} action_t;
+void int_printer(any x) {printf("%d",(long)x);}
+int  int_compare(any x, any y)
+{
+	if (x < y) return -1;
+	if (x > y) return  1;
+	return  0;
+}
 
+/*
 void generate_book_msg (char* msgBuffer)
 {
-	assert(msgBuffer != NULL);
-
 	// Add books to the library...
 	int n;
 	int firstBook = 1;
@@ -48,7 +57,7 @@ void generate_book_msg (char* msgBuffer)
 	srand(time(NULL));
 	for (n=0; n<20; n++)
 	{
-		int id = rand()%LIBRARY_MAXBOOKIDS;
+		int id = rand()%20;
 		if (firstBook)
 		{
 			firstBook=0;
@@ -62,56 +71,51 @@ void generate_book_msg (char* msgBuffer)
 	}
 	strcat (msgBuffer, ")");
 }
+*/
 
-void generate_random_books (librarian_t* lbrn)
+
+void borrower_RQST(borrower_t* brwr)
 {
-	assert(lbrn != NULL);
+	printf ("BORROWER: Send RQST\n");
 
-	generate_book_msg (lbrn->msgBuffer);
-	msg_client_send (lbrn->client, lbrn->msgBuffer);
+	//TODO
 
-	generate_book_msg (lbrn->msgBuffer);
-	msg_client_send (lbrn->client, lbrn->msgBuffer);
-
-	generate_book_msg (lbrn->msgBuffer);
-	msg_client_send (lbrn->client, lbrn->msgBuffer);
+	msg_client_send (brwr->client, "RQST");
 }
 
-void librarian_simplemsg (librarian_t* lbrn, char* msgText)
+void borrower_RTRN(borrower_t* brwr)
 {
-	assert(lbrn != NULL);
-	assert(msgText != NULL);
+	printf ("BORROWER: Send RQST\n");
 
-	//printf ("LIBRARIAN: Send %s request\n", msgText);
-	msg_client_send (lbrn->client, msgText);
+	//TODO
+
+	msg_client_send (brwr->client, "RQST");
 }
 
-void* librarian_run (void* arg)
+void* borrower_run (void* arg)
 {
 	assert(arg != NULL);
 
-	librarian_t lbrn;
-	lbrn.client = msg_client_create ((msg_queue_t*)arg);
+	borrower_t brwr;
+	brwr.myBooks = new_set(int_printer, int_compare);
+	brwr.client = msg_client_create ((msg_queue_t*)arg);
 
 	int action;
-	char msgBuffer[MSG_BUFFER_SIZE];
-
-	generate_random_books (&lbrn);
-
 	while (!shutdown)
 	{
-		delay_allowing_shutdown (LIBRARIAN_DELAY);
+		delay_allowing_shutdown (BORROWER_DELAY);
 
 		if (!shutdown)
 		{
 			action = rand()%2;
 			switch (action)
 			{
-				case 0: librarian_simplemsg(&lbrn, "BOOKS"); break;
-				case 1: librarian_simplemsg(&lbrn, "LOANS"); break;
+				case 0: borrower_RQST (&brwr); break;
+				case 1: borrower_RTRN (&brwr); break;
 			}
 		}
 	}
 
-	msg_client_release (lbrn.client);
+	msg_client_release (brwr.client);
+	set_release (brwr.myBooks);
 }

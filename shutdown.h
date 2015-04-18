@@ -8,5 +8,6 @@
 #define SHUTDOWN_H
 
 extern int shutdown;
+void delay_allowing_shutdown (int delay);
 
 #endif//SHUTDOWN_H

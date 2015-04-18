@@ -1,14 +1,15 @@
 //===========================================================================
-// FILE: library.h
+// FILE: borrower.h
 //===========================================================================
-// Header file for library code
+// Header file for borrower code
 // Author: Barnaby Stewart (P14167376)
 //---------------------------------------------------------------------------
-#ifndef LIBRARY_H
-#define LIBRARY_H
+#ifndef BORROWER_H
+#define BORROWER_H
 
 
-#define LIBRARY_MAXBOOKIDS 20
+void* borrower_run (void*);
 
 
-#endif//LIBRARY_H
+
+#endif//BORROWER_H

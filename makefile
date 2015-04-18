@@ -10,14 +10,15 @@ sources = makefile\
 	avl_any.h avl_any.c\
 	shutdown.h shutdown.c\
 	msg_queue.h msg_queue.c\
+	borrower.h borrower.c\
 	librarian.h librarian.c\
 	library.h library.c
-derived = mvar.o avl_any.o msg_queue.o librarian.o library.o library
+derived = mvar.o avl_any.o msg_queue.o borrower.o librarian.o library.o library
 
 all: library
 
-library: mvar.o avl_any.o shutdown.o msg_queue.o librarian.o library.o
-	gcc -o library mvar.o avl_any.o shutdown.o msg_queue.o librarian.o library.o -L../../lib -llinked_clists -llinked_queues -lm -pthread
+library: mvar.o avl_any.o shutdown.o msg_queue.o borrower.o librarian.o library.o
+	gcc -o library mvar.o avl_any.o shutdown.o msg_queue.o borrower.o librarian.o library.o -L../../lib  -llist_sets -llinked_clists -llinked_queues -lm -pthread
 
 library.o: library.h library.c $(sources)
 	gcc -c library.c -I../../include
