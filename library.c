@@ -23,10 +23,14 @@
 #include "shutdown.h"
 #include "msg_queue.h"
 #include "library.h"
+#include "librarian.h"
 
 
-avl_any* library_books;
-msg_queue_t* lib_msg_queue = NULL;
+typedef struct
+{
+	avl_any* books;
+	msg_queue_t* msg_queue;
+} library_t;
 
 
 typedef struct book_struct
@@ -74,35 +78,38 @@ void book_print (any x)
 	printf ("\n");
 }
 
-void library_initialise()
+library_t* library_create()
 {
-	lib_msg_queue = msg_queue_create();
-	library_books = new_avl_any (book_lessthan);
+	SAFE_MALLOC(library_t,lib);
+	lib->msg_queue = msg_queue_create();
+	lib->books = new_avl_any (book_lessthan);
+	return lib;
 }
 
-void library_cleanup()
+void library_release (library_t* lib)
 {
 	// Use the print mapping to free memory...
-	avl_any_inorder_print (library_books, book_free);
-	avl_any_release (library_books);
-	msg_queue_release (lib_msg_queue);
+	avl_any_inorder_print (lib->books, book_free);
+	avl_any_release (lib->books);
+	msg_queue_release (lib->msg_queue);
 }
 
-book_t* library_findbook (int bookid)
+book_t* library_findbook (library_t* lib, int bookid)
 {
+	printf ("library_findbook(%d)\n", bookid);
 	book_t dummybook;
 	dummybook.id = bookid;
-	return (book_t*)(avl_any_find (library_books, (any)&dummybook));
+	return (book_t*)(avl_any_find (lib->books, (any)&dummybook));
 }
 
-void library_addbook (int bookid)
+void library_addbook (library_t* lib, int bookid)
 {
 	printf ("library_addbook(%d)\n", bookid);
-	book_t* book = library_findbook (bookid);
+	book_t* book = library_findbook (lib, bookid);
 	if (book == NULL)
 	{
 		printf ("--library_addbook::book_not_found\n");
-		avl_any_insert (library_books, (any)book_create (bookid));
+		avl_any_insert (lib->books, (any)book_create (bookid));
 	}
 	else
 	{
@@ -111,27 +118,30 @@ void library_addbook (int bookid)
 	}
 }
 
-void* library_thread (void* thread_id)
+void* library_run (void* arg)
 {
-	// Create book structure
-	library_initialise();
+	library_t* lib = (library_t*)arg;
 
+
+	// Add test content...
+	//---------------------------------------
 	int n;
 	for (n=0; n<20; n++)
 	{
-		library_addbook (n);
+		library_addbook (lib, n);
 	}
-	library_addbook (1);
-	library_addbook (2);
-	library_addbook (8);
-	library_addbook (8);
+	library_addbook (lib, 1);
+	library_addbook (lib, 2);
+	library_addbook (lib, 8);
+	library_addbook (lib, 8);
 
-	avl_any_inorder_print (library_books, book_print);
+	avl_any_inorder_print (lib->books, book_print);
+	//---------------------------------------
 
 
 	while (!shutdown)
 	{
-		msg_client_t* client = msg_queue_getclient (lib_msg_queue);
+		msg_client_t* client = msg_queue_getclient (lib->msg_queue);
 		if (client != NULL)
 		{
 			// Process request from client...
@@ -139,28 +149,31 @@ void* library_thread (void* thread_id)
 			msg_client_ack (client);
 		}
 	}
-
-	library_cleanup();
 }
 
 main()
 {
 	// Read command line arguments...
 	// TODO
-	//library_thread(0);
 
-    pthread_attr_t attr;
-    pthread_attr_init (&attr);
-    pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_JOINABLE);
+	pthread_attr_t attr;
+	pthread_attr_init (&attr);
+	pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_JOINABLE);
 
-    int i;
-    int error;
+	int i;
+	int error;
 	int numBorrowers = 0;
-    int numThreads = 2 + numBorrowers;
-    SAFE_MALLOC_ARRAY(pthread_t, threads, numThreads);
+	int numThreads = 2 + numBorrowers;
+	SAFE_MALLOC_ARRAY(pthread_t, threads, numThreads);
 
-    pthread_create(&threads[0], &attr, library_thread, (void*)0);
-    //pthread_create(&threads[1], &attr, librarian_thread, (void*)1);
+	library_t* lib = library_create();
+
+	msg_client_t* client = msg_client_create (lib->msg_queue);
+	msg_client_release (client);
+
+	pthread_create(&threads[0], &attr, library_run,   (void*)lib);
+	pthread_create(&threads[1], &attr, librarian_run, (void*)lib->msg_queue);
+
     /*
     // Create threads for borrowers
     for (i=2; i<numThreads; i++)
@@ -186,18 +199,20 @@ main()
 				shutdown = 1;
 		}
 		// nudge waiting processes...
-		msg_queue_nudge(lib_msg_queue);
+		msg_queue_nudge(lib->msg_queue);
     }
 
-    TRACE("Waiting for threads to close");
-    for (i=0; i<numThreads; i++)
-    {
-      pthread_join(threads[i], NULL);
-    }
-  
-    pthread_attr_destroy(&attr);
+	TRACE("Waiting for threads to close");
+	//for (i=0; i<numThreads; i++)
+	for (i=0; i<2; i++)
+	{
+		pthread_join(threads[i], NULL);
+	}
+	library_release (lib);
 
-    TRACE("Program Complete");
-    return 0;
+	pthread_attr_destroy(&attr);
+
+	TRACE("Program Complete");
+	return 0;
 }
 

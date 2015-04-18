@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <unistd.h>
 
 // Standard CTEC2901 Headers
 #include "clist.h"
@@ -25,18 +26,14 @@
 
 
 
-struct librarian_impl
+void* librarian_run (void* arg)
 {
-	msg_client_t* client;
-};
+	msg_client_t* client = msg_client_create ((msg_queue_t*)arg);
 
-librarian_t* librarian_create  (msg_queue_t* msgq)
-{
-	SAFE_MALLOC(librarian_t, lbrn);
-	lbrn->client = msg_client_create (msgq);
-}
+	while (!shutdown)
+	{
+		sleep(1);
+	}
 
-void librarian_release (librarian_t* lbrn)
-{
-	msg_client_release (lbrn->client);
+	msg_client_release (client);
 }
