@@ -1,14 +1,12 @@
 //===========================================================================
-// FILE: library.h
+// FILE: shutdown.h
 //===========================================================================
-// Header file for library code
+// Header file for shutdown functionality
 // Author: Barnaby Stewart (P14167376)
 //---------------------------------------------------------------------------
-#ifndef LIBRARY_H
-#define LIBRARY_H
+#ifndef SHUTDOWN_H
+#define SHUTDOWN_H
 
+static extern int shutdown;
 
-queue_any* lib_msg_queue;
-
-
-#endif//LIBRARY_H
+#endif//SHUTDOWN_H
