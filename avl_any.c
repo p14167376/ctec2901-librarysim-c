@@ -2,25 +2,29 @@
 // FILE: avl_any.c
 //===========================================================================
 // Implementation file for AVL Tree struct
-// Modified to include 'avl_any_find()' function.
-// Author: David Smallwood
+// Original Author: David Smallwood
+// Modifications:
+//  - Added 'avl_any_find()' function.
+//  - Use SAFE_MALLOC(), SAFE_MALLOC_EXISTING() & SAFE_FREE()
 //---------------------------------------------------------------------------
 
-
+//#define TRACE_ON
 
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include "avl_any.h"
+#include "trace.h"
+#include "smalloc.h"
 
-struct node
+typedef struct node
 {
     char height;
     any item;
     struct node * left;
     struct node * right;
-};
+} node_t;
 
 struct avl_any_implementation
 {
@@ -31,7 +35,7 @@ struct avl_any_implementation
 
 avl_any * new_avl_any(rel_func lt)
 {
-    avl_any * t = (avl_any*)malloc(sizeof(avl_any));
+    SAFE_MALLOC(avl_any,t);
     t->root = NULL;
     t->size = 0;
     t->lt = lt;
@@ -164,12 +168,9 @@ struct node* ensure_balance(struct node *p)
 
 struct node * ins(avl_any *t, any x, struct node *p)
 {
-    if (p==NULL) {
-        p = (struct node *)malloc(sizeof(struct node));
-        if (p==NULL) {
-            printf("avl_anyinsert (ins): failed to allocate memory\n");
-            exit(1);
-        }
+    if (p==NULL)
+    {
+        SAFE_MALLOC_EXISTING(node_t,p);
         p->left   = p->right = NULL;
         p->item   = x;
         (t->size)++;
@@ -230,7 +231,7 @@ struct node * del(avl_any *t, any x, struct node *p)
             p = p->left;                        // promote the left tree
 
         (t->size)--;                            // reduce the count
-        free(n);                                // reclaim memory
+        SAFE_FREE(n);                                // reclaim memory
     }
     
     return ensure_balance(p);
@@ -333,5 +334,5 @@ void avl_any_simple_print(avl_any *t, void (* item_print)(any item))
 void avl_any_release(avl_any *t)
 {
     assert(t!=NULL);
-    free(t);
+    SAFE_FREE(t);
 }

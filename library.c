@@ -19,7 +19,6 @@
 #define TRACE_ON
 #include "smalloc.h"
 #include "trace.h"
-#include "mvar.h"
 #include "avl_any.h"
 #include "shutdown.h"
 #include "msg_queue.h"
@@ -50,7 +49,7 @@ void book_free (any x)
 {
 	book_t* book = (book_t*)x;
 	clist_release (book->borrowerlist);
-	free (book);
+	SAFE_FREE(book);
 }
 
 int book_lessthan (any x, any y)
@@ -77,7 +76,7 @@ void book_print (any x)
 
 void library_initialise()
 {
-	lib_msg_queue = new_msg_queue();
+	lib_msg_queue = msg_queue_create();
 	library_books = new_avl_any (book_lessthan);
 }
 
@@ -122,19 +121,22 @@ void* library_thread (void* thread_id)
 	{
 		library_addbook (n);
 	}
+	library_addbook (1);
+	library_addbook (2);
+	library_addbook (8);
+	library_addbook (8);
 
 	avl_any_inorder_print (library_books, book_print);
 
 
 	while (!shutdown)
 	{
-		msg_request_t* rqst = msg_queue_getrequest (lib_msg_queue);
-		if (rqst != NULL)
+		msg_client_t* client = msg_queue_getclient (lib_msg_queue);
+		if (client != NULL)
 		{
-			// Process request...
+			// Process request from client...
 
-			//msg_request_ack (rqst);
-			msg_request_ack (rqst);
+			msg_client_ack (client);
 		}
 	}
 
@@ -194,7 +196,6 @@ main()
     }
   
     pthread_attr_destroy(&attr);
-    pthread_exit(NULL);
 
     TRACE("Program Complete");
     return 0;
