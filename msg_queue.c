@@ -6,39 +6,65 @@
 //---------------------------------------------------------------------------
 
 #include <pthread.h>
+
+#include "mvar.h"
 #include "trace.h"
 #include "smalloc.h"
+
 #include "shutdown.h"
 #include "msg_queue.h"
 
-typedef struct
+struct msg_queue_impl
 {
 	pthread_mutex_t mutex;
 	pthread_cond_t  msg_waiting;
 	queue_any*      messages;
-} msg_queue_t;
+};
 
-typedef struct
+struct msg_request_impl
 {
 	msg_queue_t* msgq;
-	mvar* reply;
+	mvar* ack;
 	any payload;
-} msg_request_t;
+};
 
 msg_queue_t* new_msg_queue()
 {
-	SAFE_MALLOC(msg_queue_t, newqueue);
-    pthread_mutex_init (&newqueue->mutex, NULL);
-    pthread_cond_init (&newqueue->msg_waiting, NULL);
-    return newqueue;
+	SAFE_MALLOC(msg_queue_t, msgq);
+    pthread_mutex_init (&msgq->mutex, NULL);
+    pthread_cond_init (&msgq->msg_waiting, NULL);
+    msgq->messages = new_unbounded_queue_any();
+    return msgq;
 }
 
 msg_request_t* new_msg_request (msg_queue_t* msgq)
 {
 	SAFE_MALLOC(msg_request_t, rqst);
-	rqst->msgq  = msgq;
-    rqst->reply = new_empty_mvar();
+	rqst->msgq = msgq;
+    rqst->ack  = new_empty_mvar();
     // payload is set each time the owner sends a request
+}
+
+void msg_queue_release(msg_queue_t* msgq)
+{
+	// Ack and remove any waiting messages...
+	// (must ack to wake any waiting threads)
+	msg_request_t* rqst;
+    while (!queue_any_isempty(msgq->messages))
+	{
+		rqst = (msg_request_t*)queue_any_dequeue(msgq->messages);
+		put_mvar(rqst->ack, 0);
+	}
+    queue_any_release (msgq->messages);
+    pthread_cond_destroy(&msgq->msg_waiting);
+    pthread_mutex_destroy(&msgq->mutex);
+	free (msgq);
+}
+
+void msg_request_release (msg_request_t* rqst)
+{
+	delete_mvar (rqst->ack);
+	free (rqst);
 }
 
 int msg_request_send (msg_request_t* rqst, any payload)
@@ -47,7 +73,7 @@ int msg_request_send (msg_request_t* rqst, any payload)
     if (shutdown)
     {
         pthread_mutex_unlock(&(rqst->msgq->mutex));
-        return false;
+        return 0;
 	}
 
 	rqst->payload = payload;
@@ -56,25 +82,31 @@ int msg_request_send (msg_request_t* rqst, any payload)
 	pthread_cond_broadcast (&rqst->msgq->msg_waiting);
 	pthread_mutex_unlock (&rqst->msgq->mutex);
 
-	take_mvar (rqst->reply);
-	return true;
+	take_mvar (rqst->ack);
+	return 1;
 }
 
-msg_request* msg_queue_getrequest (msg_queue_t* msgq)
+void msg_request_ack (msg_request_t* rqst)
+{
+	put_mvar(rqst->ack, (void*)(rqst->payload));
+}
+
+void msg_queue_nudge (msg_queue_t* msgq)
+{
+	pthread_cond_broadcast (&msgq->msg_waiting);
+}
+
+msg_request_t* msg_queue_getrequest (msg_queue_t* msgq)
 {
 	pthread_mutex_lock(&msgq->mutex);
 
 	while (queue_any_isempty(msgq->messages))
 	{
 	    pthread_cond_wait(&msgq->msg_waiting, &msgq->mutex);
+		if (shutdown) return NULL;
 	}
-
 	msg_request_t* rqst = (msg_request_t*)(queue_any_dequeue(msgq->messages));
 	pthread_mutex_unlock(&msgq->mutex);
 	return rqst;
 }
 
-void msq_request_reply (msg_request_t* rqst)
-{
-	put_mvar(rqst->reply, (void*)(rqst->payload));
-}

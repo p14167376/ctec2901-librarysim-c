@@ -8,7 +8,4 @@
 #define LIBRARY_H
 
 
-queue_any* lib_msg_queue;
-
-
 #endif//LIBRARY_H

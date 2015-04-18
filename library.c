@@ -21,11 +21,13 @@
 #include "trace.h"
 #include "mvar.h"
 #include "avl_any.h"
+#include "shutdown.h"
+#include "msg_queue.h"
 #include "library.h"
 
 
 avl_any* library_books;
-queue_any* lib_msg_queue = NULL;
+msg_queue_t* lib_msg_queue = NULL;
 
 
 typedef struct book_struct
@@ -73,11 +75,18 @@ void book_print (any x)
 	printf ("\n");
 }
 
-
 void library_initialise()
 {
-	lib_msg_queue = new_unbounded_queue_any();
+	lib_msg_queue = new_msg_queue();
 	library_books = new_avl_any (book_lessthan);
+}
+
+void library_cleanup()
+{
+	// Use the print mapping to free memory...
+	avl_any_inorder_print (library_books, book_free);
+	avl_any_release (library_books);
+	msg_queue_release (lib_msg_queue);
 }
 
 book_t* library_findbook (int bookid)
@@ -103,12 +112,6 @@ void library_addbook (int bookid)
 	}
 }
 
-void library_deleteallbooks()
-{
-	// Use the print mapping to free memory...
-	avl_any_inorder_print (library_books, book_free);
-}
-
 void* library_thread (void* thread_id)
 {
 	// Create book structure
@@ -120,46 +123,80 @@ void* library_thread (void* thread_id)
 		library_addbook (n);
 	}
 
-	printf ("avl_any_preorder_print()\n");
 	avl_any_inorder_print (library_books, book_print);
 
-	printf ("library_deleteallbooks()\n");
-	library_deleteallbooks();
+
+	while (!shutdown)
+	{
+		msg_request_t* rqst = msg_queue_getrequest (lib_msg_queue);
+		if (rqst != NULL)
+		{
+			// Process request...
+
+			//msg_request_ack (rqst);
+			msg_request_ack (rqst);
+		}
+	}
+
+	library_cleanup();
 }
 
 main()
 {
 	// Read command line arguments...
 	// TODO
-	library_thread(0);
-/*
+	//library_thread(0);
 
     pthread_attr_t attr;
     pthread_attr_init (&attr);
     pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_JOINABLE);
 
-    //pthread_t threads[NO_THREADS];
-    for(i=1;i<NO_THREADS;i++)
+    int i;
+    int error;
+	int numBorrowers = 0;
+    int numThreads = 2 + numBorrowers;
+    SAFE_MALLOC_ARRAY(pthread_t, threads, numThreads);
+
+    pthread_create(&threads[0], &attr, library_thread, (void*)0);
+    //pthread_create(&threads[1], &attr, librarian_thread, (void*)1);
+    /*
+    // Create threads for borrowers
+    for (i=2; i<numThreads; i++)
     {
-        err = pthread_create(&threads[i], &attr, sender, (void *)(thread_id[i]));
+        error = pthread_create(&threads[i], &attr, sender, (void*)i);
         if (err!=0)
         {
             printf("Create failed at %i\n",i);
             exit(1);
         }
     }
-    pthread_create(&threads[0], &attr, receiver, (void *)(thread_id[0]));
-
-    for (i=0; i<NO_THREADS; i++)
-      pthread_join(threads[i], NULL);
-  
-    printf("Main done.\n");
-    pthread_attr_destroy(&attr);
-    pthread_mutex_destroy(&buffer_mutex);
-    pthread_cond_destroy(&msg_waiting_cond_var);
-    pthread_exit(NULL);
-    queue_any_release(buffer);
     */
+
+    char inputBuffer[256];
+    while (!shutdown)
+    {
+    	printf ("Enter command ('q' to quit): ");
+		fgets (inputBuffer, sizeof(inputBuffer), stdin);
+		switch (inputBuffer[0])
+		{
+			case 'q':
+			case 'Q':
+				shutdown = 1;
+		}
+		// nudge waiting processes...
+		msg_queue_nudge(lib_msg_queue);
+    }
+
+    TRACE("Waiting for threads to close");
+    for (i=0; i<numThreads; i++)
+    {
+      pthread_join(threads[i], NULL);
+    }
+  
+    pthread_attr_destroy(&attr);
+    pthread_exit(NULL);
+
+    TRACE("Program Complete");
     return 0;
 }
 

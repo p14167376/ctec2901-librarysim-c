@@ -7,6 +7,6 @@
 #ifndef SHUTDOWN_H
 #define SHUTDOWN_H
 
-static extern int shutdown;
+extern int shutdown;
 
 #endif//SHUTDOWN_H

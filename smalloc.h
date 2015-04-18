@@ -19,4 +19,12 @@
 			__FILE__, __func__, __LINE__);                       \
 	}
 
+#define SAFE_MALLOC_ARRAY(t,x,n)                                         \
+	t* x = (t*)malloc (sizeof(t)*n);                               \
+	if (x == NULL)                                               \
+	{                                                            \
+		fprintf (stderr, "ERROR: malloc() failed in %s, %s()\n", \
+			__FILE__, __func__, __LINE__);                       \
+	}
+
 #endif//SMALLOC_H

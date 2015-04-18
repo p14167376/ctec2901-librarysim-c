@@ -7,4 +7,4 @@
 
 #include "shutdown.h"
 
-static int shutdown = 0;
+int shutdown = 0;
