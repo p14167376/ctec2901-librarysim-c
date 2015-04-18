@@ -62,7 +62,10 @@ void librarian_ADD (librarian_t* lbrn)
 void librarian_BOOKS (librarian_t* lbrn)
 {
 	assert(lbrn != NULL);
-	printf ("LIBRARIAN: Send BOOKS\n");
+	//printf ("LIBRARIAN: Send BOOKS\n");
+	char buffer[1024];
+	sprintf (buffer, "LIBRARIAN: Send BOOKS[");
+	char* bufferPtr = buffer+strlen(buffer);
 
 	set* tempset = new_set (int_printer, int_compare);
 
@@ -72,8 +75,13 @@ void librarian_BOOKS (librarian_t* lbrn)
 	{
 		long id = rand()%LIBRARY_MAXBOOKIDS;
 		set_insertInto(tempset, (any)id);
+		bufferPtr = buffer+strlen(buffer);
+		sprintf(bufferPtr, " %d", id);
 	}
+	bufferPtr = buffer+strlen(buffer);
+	sprintf(bufferPtr, " ]\n");
 
+	printf(buffer);
 	msg_client_send (lbrn->client, "BOOKS", tempset);
 
 	while(!set_isempty(tempset)) set_choose_item(tempset);

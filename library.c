@@ -15,6 +15,7 @@
 // ds library Headers
 #include "list.h"
 #include "clist.h"
+#include "set.h"
 #include "queue_any.h"
 
 // Project Headers
@@ -29,6 +30,14 @@
 #include "librarian.h"
 #include "borrower.h"
 
+
+void int_printer(any x) {printf("%d",(long)x);}
+int  int_compare(any x, any y)
+{
+	if (x < y) return -1;
+	if (x > y) return  1;
+	return  0;
+}
 
 typedef struct
 {
@@ -99,7 +108,6 @@ void library_release (library_t* lib)
 
 book_t* library_findbook (library_t* lib, int bookid)
 {
-	printf ("library_findbook(%d)\n", bookid);
 	book_t dummybook;
 	dummybook.id = bookid;
 	return (book_t*)(avl_any_find (lib->books, (any)&dummybook));
@@ -107,16 +115,13 @@ book_t* library_findbook (library_t* lib, int bookid)
 
 void library_addbook (library_t* lib, int bookid)
 {
-	printf ("library_addbook(%d)\n", bookid);
 	book_t* book = library_findbook (lib, bookid);
 	if (book == NULL)
 	{
-		printf ("--library_addbook::book_not_found\n");
 		avl_any_insert (lib->books, (any)book_create (bookid));
 	}
 	else
 	{
-		printf ("--library_addbook::book_found\n");
 		book->copies++;
 	}
 }
@@ -139,12 +144,24 @@ void library_ADD(library_t* lib, any payload)
 void library_BOOKS(library_t* lib, any payload)
 {
 	assert(lib != NULL);
-	avl_any_inorder_print (lib->books, book_print);
+	assert(payload != NULL);
+	set* tempset = (set*)payload;
+
+	set* copyset = new_set(int_printer, int_compare);
+	set_unionWith(copyset, tempset);
+	while(!set_isempty(copyset))
+	{
+		book_t* book = library_findbook(lib, (long)set_choose_item(copyset));
+		book_print((any)book);
+	}
+	set_release(copyset);
+	//avl_any_inorder_print (lib->books, book_print);
 }
 
 void library_LOANS(library_t* lib, any payload)
 {
 	assert(lib != NULL);
+	assert(payload != NULL);
 
 	// TODO  List of borrowers...
 }

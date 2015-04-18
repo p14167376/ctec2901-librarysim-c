@@ -38,13 +38,8 @@ typedef struct
 	set*          myBooks;
 } borrower_t;
 
-void int_printer(any x) {printf("%d",(long)x);}
-int  int_compare(any x, any y)
-{
-	if (x < y) return -1;
-	if (x > y) return  1;
-	return  0;
-}
+extern void int_printer(any x);
+extern int  int_compare(any x, any y);
 
 void borrower_RQST(borrower_t* brwr)
 {
@@ -100,8 +95,9 @@ void* borrower_run (void* arg)
 			action = rand()%2;
 			switch (action)
 			{
-				case 0: borrower_RQST (&brwr); break;
-				case 1: borrower_RTRN (&brwr); break;
+				case 0: //borrower_RQST (&brwr); break;
+				case 1: //borrower_RTRN (&brwr); break;
+					break;
 			}
 		}
 	}
