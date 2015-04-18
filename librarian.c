@@ -27,7 +27,7 @@
 #include "librarian.h"
 
 
-#define LIBRARIAN_DELAY  1
+#define LIBRARIAN_DELAY  5
 #define MSG_BUFFER_SIZE  128
 #define TEXT_BUFFER_SIZE 32
 
@@ -39,19 +39,19 @@ void generate_book_msg (char* msgBuffer)
 	int n;
 	int firstBook = 1;
 	char textBuffer[TEXT_BUFFER_SIZE];
-	sprintf(msgBuffer, "ADDBOOKS(");
+	sprintf(msgBuffer, "ADD(");
 	srand(time(NULL));
 	for (n=0; n<20; n++)
 	{
-		int id = rand()%1000;
+		int id = rand()%20;
 		if (firstBook)
 		{
+			firstBook=0;
 			sprintf(textBuffer, "%d", id);
 		}
 		else
 		{
 			sprintf(textBuffer, ",%d", id);
-			firstBook=0;
 		}
 		strcat (msgBuffer, textBuffer);
 	}
@@ -61,25 +61,37 @@ void generate_book_msg (char* msgBuffer)
 void* librarian_run (void* arg)
 {
 	int action;
+	int delayLoop;
 	char msgBuffer[MSG_BUFFER_SIZE];
 	msg_client_t* client = msg_client_create ((msg_queue_t*)arg);
 
 	generate_book_msg (msgBuffer);
 	msg_client_send (client, msgBuffer);
 
+	generate_book_msg (msgBuffer);
+	msg_client_send (client, msgBuffer);
+
+	generate_book_msg (msgBuffer);
+	msg_client_send (client, msgBuffer);
+
 	while (!shutdown)
 	{
-		sleep(LIBRARIAN_DELAY);
+		for(delayLoop=0;delayLoop<LIBRARIAN_DELAY;delayLoop++)
+		{
+			if (!shutdown) sleep(1);
+		}
 		if (!shutdown)
 		{
 			action = rand()%2;
 			switch (action)
 			{
 				case 0:
-					msg_client_send (client, "REQUEST_BOOKS");
+					printf ("LIBRARIAN: Send BOOK request\n");
+					msg_client_send (client, "BOOKS");
 					break;
 				case 1:
-					msg_client_send (client, "REQUEST_LOANS");
+					printf ("LIBRARIAN: Send LOANS request\n");
+					msg_client_send (client, "LOANS");
 					break;
 			}
 		}

@@ -7,6 +7,7 @@
 
 
 // Standard C Headers
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -119,26 +120,63 @@ void library_addbook (library_t* lib, int bookid)
 	}
 }
 
+void library_ADD(library_t* lib, char* msgText)
+{
+	assert(lib != NULL);
+	assert(msgText != NULL);
+	if (strncmp(msgText, "ADD(", 4) != 0)
+	{
+		printf ("LIBRARY: Badly formatted ADD command.\n");
+		return;
+	}
+	msgText += 4; // jump past "ADD("
+
+	int scan;
+	int bookid;
+	while (*msgText != 0)
+	{
+		scan = sscanf (msgText, "%d", &bookid);
+		if (scan == 1)
+		{
+			library_addbook(lib, bookid);
+			while (*msgText != ',' && *msgText != 0) msgText++;
+		}
+		if (*msgText != 0) msgText++;
+	}
+}
+
+void library_BOOKS(library_t* lib, char* msgText)
+{
+	assert(lib != NULL);
+	assert(msgText != NULL);
+	avl_any_inorder_print (lib->books, book_print);
+}
+
+void library_LOANS(library_t* lib, char* msgText)
+{
+	assert(lib != NULL);
+	assert(msgText != NULL);
+
+}
+
+void library_RQST(library_t* lib, char* msgText)
+{
+	assert(lib != NULL);
+	assert(msgText != NULL);
+
+}
+
+void library_RTRN(library_t* lib, char* msgText)
+{
+	assert(lib != NULL);
+	assert(msgText != NULL);
+
+}
+
 void* library_run (void* arg)
 {
+	assert(arg != NULL);
 	library_t* lib = (library_t*)arg;
-
-
-	// Add test content...
-	//---------------------------------------
-	int n;
-	for (n=0; n<20; n++)
-	{
-		library_addbook (lib, n);
-	}
-	library_addbook (lib, 1);
-	library_addbook (lib, 2);
-	library_addbook (lib, 8);
-	library_addbook (lib, 8);
-
-	avl_any_inorder_print (lib->books, book_print);
-	//---------------------------------------
-
 
 	while (!shutdown)
 	{
@@ -146,7 +184,17 @@ void* library_run (void* arg)
 		if (client != NULL)
 		{
 			// Process request from client...
-			printf ("MESSAGE RECEIVED: '%s'\n", (char*)msg_client_getpayload(client));
+			char* msgText = (char*)msg_client_getpayload(client);
+
+			if      (strncmp(msgText, "ADD",   3) == 0) library_ADD   (lib, msgText);
+			else if (strncmp(msgText, "BOOKS", 5) == 0) library_BOOKS (lib, msgText);
+			else if (strncmp(msgText, "LOANS", 5) == 0) library_LOANS (lib, msgText);
+			else if (strncmp(msgText, "RQST",  4) == 0) library_RQST  (lib, msgText);
+			else if (strncmp(msgText, "RTRN",  4) == 0) library_RTRN  (lib, msgText);
+			else
+			{
+				printf("Unrecognised Message Received: '%s'\n", msgText);
+			}
 
 			msg_client_ack (client);
 		}
