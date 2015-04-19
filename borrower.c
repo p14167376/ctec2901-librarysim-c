@@ -4,6 +4,11 @@
 // Implementation file for borrower code
 // Author: Barnaby Stewart (P14167376)
 //---------------------------------------------------------------------------
+// Notes:
+//  Rather than passing an id into each borrower, the borrowers make an
+//  initial message call to the library to register and get an id value.
+//  This is a reflection of how individuals register with a real library.
+//---------------------------------------------------------------------------
 
 
 // Standard C Headers
@@ -34,6 +39,7 @@
 
 typedef struct
 {
+	int           id;
 	msg_client_t* client;
 	set*          myBooks;
 } borrower_t;
@@ -56,15 +62,14 @@ void borrower_RQST(borrower_t* brwr)
 			set_insertInto(tempset, (any)id);
 		}
 	}
-	printf ("BORROWER: Requested Books ");
+	printf ("BORROWER %d: Requested Books ", brwr->id);
 	set_print(tempset); printf("\n");
 
 	msg_client_send (brwr->client, "RQST", (any)tempset);
 
-	printf ("BORROWER: Received Books ");
+	printf ("BORROWER %d: Received Books ", brwr->id);
 	set_print(tempset); printf("\n");
 
-	// TODO record which books were loaned
 	set_unionWith(brwr->myBooks, tempset);
 
 	while(!set_isempty(tempset)) set_choose_item(tempset);
@@ -73,7 +78,7 @@ void borrower_RQST(borrower_t* brwr)
 
 void borrower_RTRN(borrower_t* brwr)
 {
-	printf ("BORROWER: Send RTRN\n");
+	printf ("BORROWER %d: Send RTRN\n", brwr->id);
 	msg_client_send (brwr->client, "RTRN", (any)brwr->myBooks);
 }
 
@@ -82,8 +87,11 @@ void* borrower_run (void* arg)
 	assert(arg != NULL);
 
 	borrower_t brwr;
+	brwr.id      = -1;
 	brwr.myBooks = new_set(int_printer, int_compare);
-	brwr.client = msg_client_create ((msg_queue_t*)arg);
+	brwr.client  = msg_client_create ((msg_queue_t*)arg);
+
+	msg_client_send (brwr.client, "RGST", (any)(&brwr.id));
 
 	int action;
 	while (!shutdown)

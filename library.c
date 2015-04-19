@@ -41,8 +41,9 @@ int  int_compare(any x, any y)
 
 typedef struct
 {
-	avl_any* books;
+	avl_any*     books;
 	msg_queue_t* msg_queue;
+	int          regBorrowers;
 } library_t;
 
 typedef struct book_struct
@@ -93,8 +94,9 @@ void book_print (any x)
 library_t* library_create()
 {
 	SAFE_MALLOC(library_t,lib);
-	lib->msg_queue = msg_queue_create();
-	lib->books = new_avl_any (book_lessthan);
+	lib->msg_queue    = msg_queue_create();
+	lib->books        = new_avl_any (book_lessthan);
+	lib->regBorrowers = 0;
 	return lib;
 }
 
@@ -166,6 +168,15 @@ void library_LOANS(library_t* lib, any payload)
 	// TODO  List of borrowers...
 }
 
+void library_RGST(library_t* lib, any payload)
+{
+	assert(lib != NULL);
+	assert(payload != NULL);
+
+	int* id = (int*)payload;
+	*id = lib->regBorrowers++;
+}
+
 void library_RQST(library_t* lib, any payload)
 {
 	assert(lib != NULL);
@@ -195,6 +206,7 @@ void* library_run (void* arg)
 			if      (strncmp(msgName, "ADD",   3) == 0) library_ADD   (lib, payload);
 			else if (strncmp(msgName, "BOOKS", 5) == 0) library_BOOKS (lib, payload);
 			else if (strncmp(msgName, "LOANS", 5) == 0) library_LOANS (lib, payload);
+			else if (strncmp(msgName, "RGST",  4) == 0) library_RGST  (lib, payload);
 			else if (strncmp(msgName, "RQST",  4) == 0) library_RQST  (lib, payload);
 			else if (strncmp(msgName, "RTRN",  4) == 0) library_RTRN  (lib, payload);
 			else
