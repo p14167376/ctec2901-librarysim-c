@@ -8,6 +8,7 @@
 #define SHUTDOWN_H
 
 extern int shutdown;
-void delay_allowing_shutdown (int delay);
+void sleep_allowing_shutdown (int seconds);
+void millisleep_allowing_shutdown (int milliseconds);
 
 #endif//SHUTDOWN_H

@@ -29,7 +29,7 @@
 #include "library.h"
 
 
-#define BORROWER_DELAY        6
+#define BORROWER_DELAY        600 // milliseconds
 #define BORROWER_MAXBOOKSRQST 5
 
 typedef struct
@@ -88,7 +88,7 @@ void* borrower_run (void* arg)
 	int action;
 	while (!shutdown)
 	{
-		delay_allowing_shutdown (BORROWER_DELAY);
+		millisleep_allowing_shutdown (BORROWER_DELAY);
 
 		if (!shutdown)
 		{

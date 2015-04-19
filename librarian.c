@@ -28,7 +28,7 @@
 #include "library.h"
 
 
-#define LIBRARIAN_DELAY        5
+#define LIBRARIAN_DELAY        500 // milliseconds
 #define LIBRARIAN_MAXBOOKSRQST 5
 #define LIBRARIAN_MAXLOANSRQST 5
 
@@ -70,7 +70,7 @@ void librarian_BOOKS (librarian_t* lbrn)
 	set* tempset = new_set (int_printer, int_compare);
 
 	int n;
-	int max = rand() % LIBRARIAN_MAXBOOKSRQST;
+	int max = (rand() % (LIBRARIAN_MAXBOOKSRQST - 1)) + 1;
 	for (n=0;n<max; n++)
 	{
 		long id = rand()%LIBRARY_MAXBOOKIDS;
@@ -96,7 +96,7 @@ void librarian_LOANS (librarian_t* lbrn)
 	set* tempset = new_set (int_printer, int_compare);
 
 	int n;
-	int max = rand() % LIBRARIAN_MAXLOANSRQST;
+	int max = (rand() % (LIBRARIAN_MAXLOANSRQST - 1)) + 1;
 	for (n=0;n<max; n++)
 	{
 		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -123,7 +123,7 @@ void* librarian_run (void* arg)
 	int action;
 	while (!shutdown)
 	{
-		delay_allowing_shutdown (LIBRARIAN_DELAY);
+		millisleep_allowing_shutdown (LIBRARIAN_DELAY);
 
 		if (!shutdown)
 		{
@@ -131,7 +131,8 @@ void* librarian_run (void* arg)
 			switch (action)
 			{
 				case 0: librarian_BOOKS(&lbrn); break;
-				case 1: librarian_LOANS(&lbrn); break;
+				case 1: //librarian_LOANS(&lbrn); break;
+					break;
 			}
 		}
 	}
