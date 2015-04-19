@@ -29,6 +29,7 @@
 #include "smalloc.h"
 #include "trace.h"
 #include "shutdown.h"
+#include "set_ints.h"
 #include "msg_queue.h"
 #include "borrower.h"
 #include "library.h"
@@ -44,13 +45,10 @@ typedef struct
 	set*          myBooks;
 } borrower_t;
 
-extern void int_printer(any x);
-extern int  int_compare(any x, any y);
-
 void borrower_RQST(borrower_t* brwr)
 {
 	assert(brwr != NULL);
-	set* tempset = new_set (int_printer, int_compare);
+	set* tempset = set_ints_create();
 
 	int n;
 	int max = (rand() % (BORROWER_MAXBOOKSRQST - 1)) + 1;
@@ -65,21 +63,27 @@ void borrower_RQST(borrower_t* brwr)
 	printf ("BORROWER %d: Requested Books ", brwr->id);
 	set_print(tempset); printf("\n");
 
-	msg_client_send (brwr->client, "RQST", (any)tempset);
+	library_RQST_t librq;
+	librq.brwr  = brwr->id;
+	librq.books = tempset;
+	msg_client_send (brwr->client, "RQST", (any)&librq);
 
 	printf ("BORROWER %d: Received Books ", brwr->id);
 	set_print(tempset); printf("\n");
 
 	set_unionWith(brwr->myBooks, tempset);
 
-	while(!set_isempty(tempset)) set_choose_item(tempset);
-	set_release(tempset);
+	set_ints_release(tempset);
 }
 
 void borrower_RTRN(borrower_t* brwr)
 {
 	printf ("BORROWER %d: Send RTRN\n", brwr->id);
-	msg_client_send (brwr->client, "RTRN", (any)brwr->myBooks);
+
+	library_RQST_t librq;
+	librq.brwr  = brwr->id;
+	librq.books = brwr->myBooks;
+	msg_client_send (brwr->client, "RTRN", (any)&librq);
 }
 
 void* borrower_run (void* arg)
@@ -88,7 +92,7 @@ void* borrower_run (void* arg)
 
 	borrower_t brwr;
 	brwr.id      = -1;
-	brwr.myBooks = new_set(int_printer, int_compare);
+	brwr.myBooks = set_ints_create();
 	brwr.client  = msg_client_create ((msg_queue_t*)arg);
 
 	msg_client_send (brwr.client, "RGST", (any)(&brwr.id));
@@ -111,6 +115,5 @@ void* borrower_run (void* arg)
 	}
 
 	msg_client_release (brwr.client);
-	while(!set_isempty(brwr.myBooks)) set_choose_item(brwr.myBooks);
-	set_release (brwr.myBooks);
+	set_ints_release (brwr.myBooks);
 }

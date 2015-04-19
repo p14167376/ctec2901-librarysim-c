@@ -1,19 +1,18 @@
 //===========================================================================
-// FILE: library.h
+// FILE: set_ints.h
 //===========================================================================
-// Header file for library code
+// Header file for set of ints functionality
 // Author: Barnaby Stewart (P14167376)
 //---------------------------------------------------------------------------
-#ifndef LIBRARY_H
-#define LIBRARY_H
+#ifndef SETINTS_H
+#define SETINTS_H
 
+#include "set.h"
 
-#define LIBRARY_MAXBOOKIDS 20
+set* set_ints_create();
+void set_ints_release (set* s);
 
-typedef struct
-{
-	int  brwr;
-	set* books;
-} library_RQST_t;
+void set_ints_printer(any x);
+int  set_ints_compare(any x, any y);
 
-#endif//LIBRARY_H
+#endif//SET_INTS_H

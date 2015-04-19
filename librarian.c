@@ -23,6 +23,7 @@
 #include "smalloc.h"
 #include "trace.h"
 #include "shutdown.h"
+#include "set_ints.h"
 #include "msg_queue.h"
 #include "librarian.h"
 #include "library.h"
@@ -32,9 +33,6 @@
 #define LIBRARIAN_DELAY         500 // milliseconds
 #define LIBRARIAN_MAXBOOKSRQST    5
 #define LIBRARIAN_MAXLOANSRQST    5
-
-extern void int_printer(any x);
-extern int  int_compare(any x, any y);
 
 typedef struct
 {
@@ -47,7 +45,7 @@ void librarian_ADD (librarian_t* lbrn)
 	assert(lbrn != NULL);
 	printf ("LIBRARIAN: Send ADD (Generate random books for the library)\n");
 
-	list* templist = new_list(int_compare);
+	list* templist = new_list(set_ints_compare);
 
 	int n;
 	for (n=0; n<LIBRARIAN_NUMBOOKSTOADD; n++)
@@ -69,7 +67,7 @@ void librarian_BOOKS (librarian_t* lbrn)
 	sprintf (buffer, "LIBRARIAN: Send BOOKS[");
 	char* bufferPtr = buffer+strlen(buffer);
 
-	set* tempset = new_set (int_printer, int_compare);
+	set* tempset = set_ints_create();
 
 	int n;
 	int max = (rand() % (LIBRARIAN_MAXBOOKSRQST - 1)) + 1;
@@ -86,8 +84,7 @@ void librarian_BOOKS (librarian_t* lbrn)
 
 	msg_client_send (lbrn->client, "BOOKS", tempset);
 
-	while(!set_isempty(tempset)) set_choose_item(tempset);
-	set_release(tempset);
+	set_ints_release(tempset);
 }
 
 void librarian_LOANS (librarian_t* lbrn)
@@ -98,7 +95,7 @@ void librarian_LOANS (librarian_t* lbrn)
 	sprintf (buffer, "LIBRARIAN: Send LOANS[");
 	char* bufferPtr = buffer+strlen(buffer);
 
-	set* tempset = new_set (int_printer, int_compare);
+	set* tempset = set_ints_create();
 
 	int n;
 	int max = (rand() % (LIBRARIAN_MAXLOANSRQST - 1)) + 1;
@@ -116,8 +113,7 @@ void librarian_LOANS (librarian_t* lbrn)
 
 	msg_client_send (lbrn->client, "LOANS", tempset);
 
-	while(!set_isempty(tempset)) set_choose_item(tempset);
-	set_release(tempset);
+	set_ints_release(tempset);
 }
 
 void* librarian_run (void* arg)

@@ -21,7 +21,6 @@
 // ds library Headers
 #include "list.h"
 #include "clist.h"
-#include "set.h"
 #include "queue_any.h"
 
 // Project Headers
@@ -29,6 +28,7 @@
 #include "smalloc.h"
 #include "trace.h"
 #include "mvar.h"
+#include "set_ints.h"
 #include "avl_any.h"
 #include "shutdown.h"
 #include "msg_queue.h"
@@ -37,13 +37,6 @@
 #include "borrower.h"
 
 
-void int_printer(any x) {printf("%d",(long)x);}
-int  int_compare(any x, any y)
-{
-	if (x < y) return -1;
-	if (x > y) return  1;
-	return  0;
-}
 
 typedef struct
 {
@@ -65,33 +58,20 @@ book_t* book_create (int id)
 	SAFE_MALLOC(book_t, book);
 	book->id = id;
 	book->copies = 1;
-	book->borrowerSet = new_set (int_printer, int_compare);
+	book->borrowerSet = set_ints_create();
 	return book;
 }
 
 void book_free (any x)
 {
 	book_t* book = (book_t*)x;
-	while(!set_isempty(book->borrowerSet)) set_choose_item(book->borrowerSet);
-	set_release (book->borrowerSet);
+	set_ints_release(book->borrowerSet);
 	SAFE_FREE(book);
 }
 
 int book_lessthan (any x, any y)
 {
 	return (int)(((book_t*)x)->id < ((book_t*)y)->id);
-}
-
-void book_print (any x)
-{
-	book_t* book = (book_t*)x;
-	printf ("Book %03d: %d Copies Owned; %d Copies on loan.", book->id, book->copies, set_count (book->borrowerSet));
-	if (set_count (book->borrowerSet))
-	{
-		printf (" Borrower(s) ");
-		set_print (book->borrowerSet);
-	}
-	printf ("\n");
 }
 
 library_t* library_create (int numBorrowers)
@@ -132,6 +112,31 @@ void library_addbook (library_t* lib, int bookid)
 	}
 }
 
+void library_printbook (any x)
+{
+	book_t* book = (book_t*)x;
+	printf ("Book %03d: %d Copies Owned; %d Copies on loan.", book->id, book->copies, set_count (book->borrowerSet));
+	if (set_count (book->borrowerSet))
+	{
+		printf (" Borrower(s) ");
+		set_print (book->borrowerSet);
+	}
+	printf ("\n");
+}
+
+void library_printborrower (library_t* lib, int brwr)
+{
+	/*
+	printf ("Borrower %03d: %d Copies Owned; %d Copies on loan.", book->id, book->copies, set_count (book->borrowerSet));
+	if (set_count (book->borrowerSet))
+	{
+		printf (" Borrower(s) ");
+		set_print (book->borrowerSet);
+	}
+	*/
+	printf ("\n");
+}
+
 void library_GETNB(library_t* lib, any payload)
 {
 	assert(lib != NULL);
@@ -162,14 +167,14 @@ void library_BOOKS(library_t* lib, any payload)
 	assert(payload != NULL);
 	set* tempset = (set*)payload;
 
-	set* copyset = new_set(int_printer, int_compare);
+	set* copyset = set_ints_create();
 	set_unionWith(copyset, tempset);
 	while(!set_isempty(copyset))
 	{
 		book_t* book = library_findbook(lib, (long)set_choose_item(copyset));
-		if (book) book_print((any)book);
+		if (book) library_printbook((any)book);
 	}
-	set_release(copyset);
+	set_ints_release(copyset);
 }
 
 void library_LOANS(library_t* lib, any payload)
@@ -177,6 +182,9 @@ void library_LOANS(library_t* lib, any payload)
 	assert(lib != NULL);
 	assert(payload != NULL);
 	set* tempset = (set*)payload;
+
+	set* copyset = set_ints_create();
+	set_unionWith(copyset, tempset);
 
 	// TODO  List of borrowers...
 }
@@ -193,13 +201,19 @@ void library_RGST(library_t* lib, any payload)
 void library_RQST(library_t* lib, any payload)
 {
 	assert(lib != NULL);
+	assert(payload != NULL);
+	library_RQST_t* librq = (library_RQST_t*)payload;
 
+	// TODO
 }
 
 void library_RTRN(library_t* lib, any payload)
 {
 	assert(lib != NULL);
+	assert(payload != NULL);
+	library_RQST_t* librq = (library_RQST_t*)payload;
 
+	// TODO
 }
 
 void* library_run (void* arg)
