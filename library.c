@@ -176,7 +176,8 @@ void library_printborrower (library_t* lib, int brwr)
 	assert(brwr >= 0);
 
 	set* books = library_getbooksforborrower(lib, brwr);
-	if (books)
+	if ( (books)
+	&&   (set_count(books) > 0) )
 	{
 		printf("Borrower %d is borrowing books ", brwr);
 		set_print (books);
@@ -204,6 +205,8 @@ void library_ADD(library_t* lib, any payload)
 	assert(payload != NULL);
 
 	list* newbooks = (list*)payload;
+	printf ("MSG(ADD): Adding %d new books to the library\n", list_size(newbooks));
+
     list_goto_head(newbooks);
     while (list_cursor_inlist(newbooks))
     {
@@ -216,6 +219,7 @@ void library_BOOKS(library_t* lib, any payload)
 {
 	assert(lib != NULL);
 	assert(payload != NULL);
+	printf ("MSG(BOOKS): Displaying status of selected books...\n");
 
 	set* tempset = (set*)payload;
 	set* copyset = set_ints_create();
@@ -233,6 +237,7 @@ void library_LOANS(library_t* lib, any payload)
 {
 	assert(lib != NULL);
 	assert(payload != NULL);
+	printf ("MSG(LOANS): Displaying status of selected borrowers...\n");
 
 	set* tempset = (set*)payload;
 	set* copyset = set_ints_create();
@@ -253,6 +258,7 @@ void library_RGST(library_t* lib, any payload)
 
 	int* id = (int*)payload;
 	*id = lib->nextId++;
+	printf ("MSG(RGST): Registered borrower (id %d)\n", *id);
 }
 
 void library_RQST(library_t* lib, any payload)
@@ -263,6 +269,10 @@ void library_RQST(library_t* lib, any payload)
 	library_RQST_t* librq = (library_RQST_t*)payload;
 	set* copyset = set_ints_create();
 	set_unionWith(copyset, librq->books);
+
+	printf ("MSG(RQST): Borrower %02d requesting books ", librq->brwr);
+	set_print (librq->books);
+	printf("\n");
 
 	while(!set_isempty(copyset))
 	{
@@ -277,6 +287,10 @@ void library_RQST(library_t* lib, any payload)
 		else set_ints_removefrom (librq->books, bookid);
 	}
 	set_ints_release(copyset);
+
+	printf ("                       received books ");
+	set_print (librq->books);
+	printf("\n");
 }
 
 void library_RTRN(library_t* lib, any payload)
@@ -287,6 +301,10 @@ void library_RTRN(library_t* lib, any payload)
 	library_RQST_t* librq = (library_RQST_t*)payload;
 	set* copyset = set_ints_create();
 	set_unionWith(copyset, librq->books);
+
+	printf ("MSG(RQST): Borrower %02d returning books ", librq->brwr);
+	set_print (librq->books);
+	printf("\n");
 
 	while(!set_isempty(copyset))
 	{
