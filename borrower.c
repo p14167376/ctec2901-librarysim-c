@@ -73,11 +73,15 @@ void borrower_RQST(borrower_t* brwr)
 
 void borrower_RTRN(borrower_t* brwr)
 {
-	library_RQST_t librq;
-	librq.brwr  = brwr->id;
-	librq.books = brwr->myBooks;
-	msg_client_send (brwr->client, "RTRN", (any)&librq);
-	set_ints_removeall(brwr->myBooks);
+	assert(brwr != NULL);
+	if(set_count(brwr->myBooks) > 0)
+	{
+		library_RQST_t librq;
+		librq.brwr  = brwr->id;
+		librq.books = brwr->myBooks;
+		msg_client_send (brwr->client, "RTRN", (any)&librq);
+		set_ints_removeall(brwr->myBooks);
+	}
 }
 
 void* borrower_run (void* arg)

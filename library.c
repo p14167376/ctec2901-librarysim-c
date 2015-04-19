@@ -38,6 +38,16 @@
 
 
 
+#define SAFE_CREATE_THREAD(t,a,f,d)                                    \
+	{                                                                  \
+        int error = pthread_create(t,a,f,d);                           \
+        if (error != 0)                                                \
+        {                                                              \
+            printf("ERROR: pthread_create() failed, code %i\n",error); \
+            exit(1);                                                   \
+        }                                                              \
+    }
+
 typedef struct
 {
 	avl_any*     books;
@@ -129,7 +139,8 @@ void library_printbook (any x)
 	assert(x != NULL);
 
 	book_t* book = (book_t*)x;
-	printf ("Book %03d: %d Copies Owned; %d Copies on loan.", book->id, book->copies, set_count (book->borrowerSet));
+	printf ("Book %03d: %d Copies Owned; %d Copies on loan.",
+		book->id, book->copies, set_count (book->borrowerSet));
 	if (set_count (book->borrowerSet))
 	{
 		printf (" Borrower(s) ");
@@ -166,7 +177,8 @@ set* library_getbooksforborrower (library_t* lib, int brwr)
 	gbfb_context_t context;
 	context.brwr  = brwr;
 	context.books = set_ints_create();
-	avl_any_inorder_map(lib->books, library_checkbookforborrower, (any)(&context));
+	avl_any_inorder_map(lib->books,
+		library_checkbookforborrower, (any)(&context));
 	return context.books;
 }
 
@@ -205,7 +217,8 @@ void library_ADD(library_t* lib, any payload)
 	assert(payload != NULL);
 
 	list* newbooks = (list*)payload;
-	printf ("MSG(ADD): Adding %d new books to the library\n", list_size(newbooks));
+	printf ("MSG(ADD): Adding %d new books to the library\n",
+		list_size(newbooks));
 
     list_goto_head(newbooks);
     while (list_cursor_inlist(newbooks))
@@ -272,7 +285,6 @@ void library_RQST(library_t* lib, any payload)
 
 	printf ("MSG(RQST): Borrower %02d requesting books ", librq->brwr);
 	set_print (librq->books);
-	printf("\n");
 
 	while(!set_isempty(copyset))
 	{
@@ -288,7 +300,7 @@ void library_RQST(library_t* lib, any payload)
 	}
 	set_ints_release(copyset);
 
-	printf ("                       received books ");
+	printf (", Got ");
 	set_print (librq->books);
 	printf("\n");
 }
@@ -302,7 +314,7 @@ void library_RTRN(library_t* lib, any payload)
 	set* copyset = set_ints_create();
 	set_unionWith(copyset, librq->books);
 
-	printf ("MSG(RQST): Borrower %02d returning books ", librq->brwr);
+	printf ("MSG(RTRN): Borrower %02d returning books ", librq->brwr);
 	set_print (librq->books);
 	printf("\n");
 
@@ -331,15 +343,15 @@ void* library_run (void* arg)
 		{
 			// Process request from client...
 			char* msgName = msg_client_getmsgname(client);
-			any   payload = msg_client_getpayload(client);
+			any   pl      = msg_client_getpayload(client);
 
-			if      (strncmp(msgName, "GETNB", 5) == 0) library_GETNB (lib, payload);
-			else if (strncmp(msgName, "ADD",   3) == 0) library_ADD   (lib, payload);
-			else if (strncmp(msgName, "BOOKS", 5) == 0) library_BOOKS (lib, payload);
-			else if (strncmp(msgName, "LOANS", 5) == 0) library_LOANS (lib, payload);
-			else if (strncmp(msgName, "RGST",  4) == 0) library_RGST  (lib, payload);
-			else if (strncmp(msgName, "RQST",  4) == 0) library_RQST  (lib, payload);
-			else if (strncmp(msgName, "RTRN",  4) == 0) library_RTRN  (lib, payload);
+			if      (strncmp(msgName, "GETNB", 5)==0) library_GETNB (lib, pl);
+			else if (strncmp(msgName, "ADD",   3)==0) library_ADD   (lib, pl);
+			else if (strncmp(msgName, "BOOKS", 5)==0) library_BOOKS (lib, pl);
+			else if (strncmp(msgName, "LOANS", 5)==0) library_LOANS (lib, pl);
+			else if (strncmp(msgName, "RGST",  4)==0) library_RGST  (lib, pl);
+			else if (strncmp(msgName, "RQST",  4)==0) library_RQST  (lib, pl);
+			else if (strncmp(msgName, "RTRN",  4)==0) library_RTRN  (lib, pl);
 			else
 			{
 				printf("Unrecognised Message Received: '%s'\n", msgName);
@@ -350,14 +362,50 @@ void* library_run (void* arg)
 	}
 }
 
-main()
+typedef struct 
+{
+	int timeLimit;
+	int numBorrowers;
+} cmdline_t;
+
+void process_cmdline(int argc, char *argv[], cmdline_t* cmdline)
+{
+	int n;
+	for (n=1;n<argc;n++)
+	{
+		printf("CMD LINE[%d]: '%s', ", n, argv[n]);
+		if (strncmp(argv[n], "-b", 2) == 0)
+		{
+			int scanint;
+			sscanf(argv[n], "-b%d", &scanint);
+			printf("Number of borrowers set to %d\n", scanint);
+			cmdline->numBorrowers = scanint;
+		}
+		else if (strncmp(argv[n], "-t", 2) == 0)
+		{
+			int scanint;
+			sscanf(argv[n], "-t%d", &scanint);
+			printf("Time limit set to %d seconds\n", scanint);
+			cmdline->timeLimit = scanint;
+		}
+		else
+		{
+			printf("Unrecognised!\n");
+		}
+	}
+}
+
+main (int argc, char *argv[])
 {
 	// Read command line arguments...
 	// TODO
 	printf("\n\n");
-	printf("===============================================================================\n");
-	printf("CTEC2901: Library Simulator                                   (Barnaby Stewart)\n");
-	printf("===============================================================================\n");
+	printf("========================================"
+		   "=======================================\n");
+	printf("CTEC2901: Library Simulator             "
+		   "                      (Barnaby Stewart)\n");
+	printf("========================================"
+		   "=======================================\n");
 
 	srand(time(NULL));
 
@@ -365,27 +413,25 @@ main()
 	pthread_attr_init (&attr);
 	pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_JOINABLE);
 
+	// process command line...
+	cmdline_t cmdline;
+	process_cmdline(argc, argv, &cmdline);
+
+	// create threads...
 	int i;
-	int error;
-	int numBorrowers = 2;
-	int numThreads = 2 + numBorrowers;
+	int numThreads = 2 + cmdline.numBorrowers;
 	SAFE_MALLOC_ARRAY(pthread_t, threads, numThreads);
 
-	library_t* lib = library_create (numBorrowers);
-	pthread_create(&threads[0], &attr, library_run,   (void*)lib);
-	pthread_create(&threads[1], &attr, librarian_run, (void*)lib->msgQueue);
-
-    // Create threads for borrowers
+	library_t* lib = library_create (cmdline.numBorrowers);
+	SAFE_CREATE_THREAD(&threads[0], &attr, library_run,   (void*)lib);
+	SAFE_CREATE_THREAD(&threads[1], &attr, librarian_run, (void*)lib->msgQueue);
     for (i=2; i<numThreads; i++)
     {
-        error = pthread_create(&threads[i], &attr, borrower_run, (void*)lib->msgQueue);
-        if (error != 0)
-        {
-            printf("Create failed at %i\n",i);
-            exit(1);
-        }
+        SAFE_CREATE_THREAD(&threads[i],
+        	&attr, borrower_run, (void*)lib->msgQueue);
     }
 
+    // wait for command to exit...
     char inputBuffer[256];
     while (!shutdown)
     {
@@ -412,9 +458,11 @@ main()
 
 	pthread_attr_destroy(&attr);
 
-	printf("-------------------------------------------------------------------------------\n");
+	printf("----------------------------------------"
+		   "---------------------------------------\n");
 	printf("Program Complete\n");
-	printf("-------------------------------------------------------------------------------\n");
+	printf("----------------------------------------"
+		   "---------------------------------------\n");
 	return 0;
 }
 
