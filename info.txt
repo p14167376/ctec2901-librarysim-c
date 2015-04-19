@@ -13,10 +13,42 @@ make all
 
 // Technical Analysis
 //---------------------------------------------------------------------------
+The threading process itself actually worked very much as intended with few
+problems. Or rather, the problems that I had were down to simple coding
+errors rather than any misunderstanding of the principles.
 
+Another impediment in developing this program was certain limitations in the
+standard course data structures. Most notably these provide little or poor
+functionality for enumerating or mapping their content.
+For the avl_any struct I have actually used a modified copy of the standard
+code. For the sets I have enumerated by creating a duplicate set and then
+using 'set_choose_item()' to map members.
+
+Blocked/Buffered Keyboard Input:
+One difficulty that I have encountered in this project as well as in other
+coursework is the buffered/blocked nature of keyboard input. This makes it
+tricky if you want to check for input, but carry on processing anyway.
+While there are ways to change the terminal to unbuffered mode, it seemed
+that the best solution in this instance was to create a new thread for the
+user input. If the user enters a quit command then this thread will exit
+normally anyway. If the program times out while still waiting for user input
+in this thread, then the main thread can cancel the user input thread.
 
 
 // Summary
 //---------------------------------------------------------------------------
 
+The program fulfills all of the basic requirements given:
+  - Creates a single thread for the library
+  - Creates a single thread for the librarian
+  - Creates multiple threads for borrowers
+  - Librarian and borrowers interact with the library through thread safe
+    passing of messages.
+  - Avoids deadlocks and other concurrency pitfalls
+  - Passes data using appropriate data structures
+  - Accepts a command line argument for setting the number of borrowers
+
+ Also allows the following:
+  - Accepts a cmd line argument for specifying a time limit.
+  - Allows user termination of the program by typing 'q' and return.
 

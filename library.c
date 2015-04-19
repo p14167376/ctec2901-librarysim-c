@@ -37,6 +37,8 @@
 #include "borrower.h"
 
 
+#define DEFAULT_NUM_BORROWERS 20
+
 
 #define SAFE_CREATE_THREAD(t,a,f,d)                                    \
 	{                                                                  \
@@ -139,11 +141,11 @@ void library_printbook (any x)
 	assert(x != NULL);
 
 	book_t* book = (book_t*)x;
-	printf ("Book %03d: %d Copies Owned; %d Copies on loan.",
+	printf ("Book %03d: Owned(%d), Loaned(%d)",
 		book->id, book->copies, set_count (book->borrowerSet));
 	if (set_count (book->borrowerSet))
 	{
-		printf (" Borrower(s) ");
+		printf (" Borrower(s)");
 		set_print (book->borrowerSet);
 	}
 	printf ("\n");
@@ -191,13 +193,13 @@ void library_printborrower (library_t* lib, int brwr)
 	if ( (books)
 	&&   (set_count(books) > 0) )
 	{
-		printf("Borrower %d is borrowing books ", brwr);
+		printf("Borrower %d: Has Books", brwr);
 		set_print (books);
 		printf("\n", brwr);
 	}
 	else
 	{
-		printf("Borrower %d has no books outstanding\n", brwr);
+		printf("Borrower %d: Has no books\n", brwr);
 	}
 	set_ints_release(books);
 }
@@ -232,7 +234,7 @@ void library_BOOKS(library_t* lib, any payload)
 {
 	assert(lib != NULL);
 	assert(payload != NULL);
-	printf ("MSG(BOOKS): Displaying status of selected books...\n");
+	printf ("MSG(BOOKS): Displaying status of selected books..............................\n");
 
 	set* tempset = (set*)payload;
 	set* copyset = set_ints_create();
@@ -244,13 +246,14 @@ void library_BOOKS(library_t* lib, any payload)
 		if (book) library_printbook((any)book);
 	}
 	set_ints_release(copyset);
+	printf (".............................................................................\n");
 }
 
 void library_LOANS(library_t* lib, any payload)
 {
 	assert(lib != NULL);
 	assert(payload != NULL);
-	printf ("MSG(LOANS): Displaying status of selected borrowers...\n");
+	printf ("MSG(LOANS): Displaying status of selected borrowers..........................\n");
 
 	set* tempset = (set*)payload;
 	set* copyset = set_ints_create();
@@ -262,6 +265,7 @@ void library_LOANS(library_t* lib, any payload)
 		library_printborrower(lib, id);
 	}
 	set_ints_release(copyset);
+	printf (".............................................................................\n");
 }
 
 void library_RGST(library_t* lib, any payload)
@@ -283,7 +287,7 @@ void library_RQST(library_t* lib, any payload)
 	set* copyset = set_ints_create();
 	set_unionWith(copyset, librq->books);
 
-	printf ("MSG(RQST): Borrower %02d requesting books ", librq->brwr);
+	printf ("MSG(RQST): Borrower %02d, Requests Books", librq->brwr);
 	set_print (librq->books);
 
 	while(!set_isempty(copyset))
@@ -300,7 +304,7 @@ void library_RQST(library_t* lib, any payload)
 	}
 	set_ints_release(copyset);
 
-	printf (", Got ");
+	printf (", Got");
 	set_print (librq->books);
 	printf("\n");
 }
@@ -314,7 +318,7 @@ void library_RTRN(library_t* lib, any payload)
 	set* copyset = set_ints_create();
 	set_unionWith(copyset, librq->books);
 
-	printf ("MSG(RTRN): Borrower %02d returning books ", librq->brwr);
+	printf ("MSG(RTRN): Borrower %02d Returns Books", librq->brwr);
 	set_print (librq->books);
 	printf("\n");
 
@@ -370,6 +374,9 @@ typedef struct
 
 void process_cmdline(int argc, char *argv[], cmdline_t* cmdline)
 {
+	cmdline->timeLimit    = 0;
+	cmdline->numBorrowers = DEFAULT_NUM_BORROWERS;
+
 	int n;
 	for (n=1;n<argc;n++)
 	{
@@ -395,7 +402,7 @@ void process_cmdline(int argc, char *argv[], cmdline_t* cmdline)
 	}
 }
 
-void* userinput_run (void*)
+void* userinput_run (void* x)
 {
     // wait for command to exit...
     char inputBuffer[256];
@@ -410,9 +417,8 @@ void* userinput_run (void*)
 				shutdown = 1;
 				break;
 		}
-		// nudge waiting processes...
-		msg_queue_nudge(lib->msgQueue);
     }
+	printf("\nPROGRAM TERMINATED BY USER\n");
 }
 
 main (int argc, char *argv[])
@@ -424,21 +430,23 @@ main (int argc, char *argv[])
 	printf("CTEC2901: Library Simulator                                   (Barnaby Stewart)\n");
 	printf("===============================================================================\n");
 
-	srand(time(NULL));
-
-	pthread_attr_t attr;
-	pthread_attr_init (&attr);
-	pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_JOINABLE);
-
 	// process command line...
 	cmdline_t cmdline;
 	process_cmdline(argc, argv, &cmdline);
 
-	// create threads...
+	srand(time(NULL));
+
+	// Prepare thread attribute
+	pthread_attr_t attr;
+	pthread_attr_init (&attr);
+	pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_JOINABLE);
+
+	// Create thread handles...
 	int i;
 	int numThreads = 2 + cmdline.numBorrowers;
 	SAFE_MALLOC_ARRAY(pthread_t, threads, numThreads);
 
+	// Create the main threads...
 	library_t* lib = library_create (cmdline.numBorrowers);
 	SAFE_CREATE_THREAD(&threads[0], &attr, library_run,   (void*)lib);
 	SAFE_CREATE_THREAD(&threads[1], &attr, librarian_run, (void*)lib->msgQueue);
@@ -448,12 +456,26 @@ main (int argc, char *argv[])
         	&attr, borrower_run, (void*)lib->msgQueue);
     }
 
+	// And one to check for user input...
     pthread_t inputThread;
     SAFE_CREATE_THREAD(&inputThread, &attr, userinput_run, 0);
 
-	TRACE("Waiting for threads to close");
-	//for (i=0; i<numThreads; i++)
-	for (i=0; i<2; i++)
+	// Wait for timeout or indefinitely...
+	if (cmdline.timeLimit > 0)
+	{
+		sleep_allowing_shutdown(cmdline.timeLimit);
+		if(!shutdown)
+		{
+			printf("\nPROGRAM TERMINATED BY TIMEOUT\n");
+			pthread_cancel(inputThread);
+			shutdown = 1;
+		}
+	}
+	else while(!shutdown) sleep(1);
+
+	// nudge the queue in case it's waiting...
+	msg_queue_nudge(lib->msgQueue);
+	for (i=0; i<numThreads; i++)
 	{
 		pthread_join(threads[i], NULL);
 	}
@@ -466,4 +488,5 @@ main (int argc, char *argv[])
 	printf("-------------------------------------------------------------------------------\n");
 	return 0;
 }
+
 

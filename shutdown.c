@@ -19,6 +19,7 @@ void sleep_allowing_shutdown (int delay)
 	for(delayLoop=0;delayLoop<delay;delayLoop++)
 	{
 		if (!shutdown) sleep(1);
+		else return;
 	}
 }
 
@@ -33,6 +34,7 @@ void millisleep_allowing_shutdown (int milliseconds)
 	for(delayLoop=0;delayLoop<seconds;delayLoop++)
 	{
 		if (!shutdown) sleep(1);
+		else return;
 	}
 	if (!shutdown) nanosleep(&delay, &timeleft);
 }
