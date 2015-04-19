@@ -28,9 +28,10 @@
 #include "library.h"
 
 
-#define LIBRARIAN_DELAY        500 // milliseconds
-#define LIBRARIAN_MAXBOOKSRQST 5
-#define LIBRARIAN_MAXLOANSRQST 5
+#define LIBRARIAN_NUMBOOKSTOADD  60
+#define LIBRARIAN_DELAY         500 // milliseconds
+#define LIBRARIAN_MAXBOOKSRQST    5
+#define LIBRARIAN_MAXLOANSRQST    5
 
 extern void int_printer(any x);
 extern int  int_compare(any x, any y);
@@ -38,17 +39,18 @@ extern int  int_compare(any x, any y);
 typedef struct
 {
 	msg_client_t* client;
+	int           numBorrowers;
 } librarian_t;
 
 void librarian_ADD (librarian_t* lbrn)
 {
 	assert(lbrn != NULL);
-	printf ("LIBRARIAN: Send ADD\n");
+	printf ("LIBRARIAN: Send ADD (Generate random books for the library)\n");
 
 	list* templist = new_list(int_compare);
 
 	int n;
-	for (n=0; n<60; n++)
+	for (n=0; n<LIBRARIAN_NUMBOOKSTOADD; n++)
 	{
 		long id = rand()%LIBRARY_MAXBOOKIDS;
 		list_ins_after(templist, (any)id);
@@ -80,8 +82,8 @@ void librarian_BOOKS (librarian_t* lbrn)
 	}
 	bufferPtr = buffer+strlen(buffer);
 	sprintf(bufferPtr, " ]\n");
-
 	printf(buffer);
+
 	msg_client_send (lbrn->client, "BOOKS", tempset);
 
 	while(!set_isempty(tempset)) set_choose_item(tempset);
@@ -91,7 +93,10 @@ void librarian_BOOKS (librarian_t* lbrn)
 void librarian_LOANS (librarian_t* lbrn)
 {
 	assert(lbrn != NULL);
-	printf ("LIBRARIAN: Send LOANS\n");
+	//printf ("LIBRARIAN: Send LOANS\n");
+	char buffer[1024];
+	sprintf (buffer, "LIBRARIAN: Send LOANS[");
+	char* bufferPtr = buffer+strlen(buffer);
 
 	set* tempset = new_set (int_printer, int_compare);
 
@@ -99,11 +104,15 @@ void librarian_LOANS (librarian_t* lbrn)
 	int max = (rand() % (LIBRARIAN_MAXLOANSRQST - 1)) + 1;
 	for (n=0;n<max; n++)
 	{
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		long id = rand()%20; //TODO MAGIC NUMBER!!!!!!
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		long id = rand() % lbrn->numBorrowers;
 		set_insertInto(tempset, (any)id);
+		bufferPtr = buffer+strlen(buffer);
+		sprintf(bufferPtr, " %d", id);
 	}
+	bufferPtr = buffer+strlen(buffer);
+	sprintf(bufferPtr, " ]\n");
+	printf(buffer);
+
 
 	msg_client_send (lbrn->client, "LOANS", tempset);
 
@@ -117,6 +126,8 @@ void* librarian_run (void* arg)
 
 	librarian_t lbrn;
 	lbrn.client = msg_client_create ((msg_queue_t*)arg);
+
+	msg_client_send (lbrn.client, "GETNB", (any)(&lbrn.numBorrowers));
 
 	librarian_ADD (&lbrn);
 

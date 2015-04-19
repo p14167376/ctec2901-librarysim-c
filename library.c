@@ -4,6 +4,12 @@
 // Implementation file for library code
 // Author: Barnaby Stewart (P14167376)
 //---------------------------------------------------------------------------
+// Notes
+//  Rather than expose functions for getting number of borrowers and
+//  registering borrowers, I have opted to use messages so that we are
+//  only implementing one type of interface and not multiple types.
+//---------------------------------------------------------------------------
+
 
 
 // Standard C Headers
@@ -42,15 +48,16 @@ int  int_compare(any x, any y)
 typedef struct
 {
 	avl_any*     books;
-	msg_queue_t* msg_queue;
-	int          regBorrowers;
+	msg_queue_t* msgQueue;
+	int          numBorrowers;
+	int          nextId;
 } library_t;
 
 typedef struct book_struct
 {
-	int    id;
-	int    copies;
-	clist* borrowerlist;
+	int  id;
+	int  copies;
+	set* borrowerSet;
 } book_t;
 
 book_t* book_create (int id)
@@ -58,14 +65,15 @@ book_t* book_create (int id)
 	SAFE_MALLOC(book_t, book);
 	book->id = id;
 	book->copies = 1;
-	book->borrowerlist = new_clist();
+	book->borrowerSet = new_set (int_printer, int_compare);
 	return book;
 }
 
 void book_free (any x)
 {
 	book_t* book = (book_t*)x;
-	clist_release (book->borrowerlist);
+	while(!set_isempty(book->borrowerSet)) set_choose_item(book->borrowerSet);
+	set_release (book->borrowerSet);
 	SAFE_FREE(book);
 }
 
@@ -74,29 +82,25 @@ int book_lessthan (any x, any y)
 	return (int)(((book_t*)x)->id < ((book_t*)y)->id);
 }
 
-void book_print_borrower (any x)
-{
-	printf (" %d", (long)x);
-}
-
 void book_print (any x)
 {
 	book_t* book = (book_t*)x;
-	printf ("Book %03d: %d Copies Owned; %d Copies on loan.", book->id, book->copies, clist_size (book->borrowerlist));
-	if (clist_size (book->borrowerlist))
+	printf ("Book %03d: %d Copies Owned; %d Copies on loan.", book->id, book->copies, set_count (book->borrowerSet));
+	if (set_count (book->borrowerSet))
 	{
 		printf (" Borrower(s) ");
-		clist_print (book->borrowerlist, book_print_borrower);
+		set_print (book->borrowerSet);
 	}
 	printf ("\n");
 }
 
-library_t* library_create()
+library_t* library_create (int numBorrowers)
 {
 	SAFE_MALLOC(library_t,lib);
-	lib->msg_queue    = msg_queue_create();
+	lib->msgQueue     = msg_queue_create();
 	lib->books        = new_avl_any (book_lessthan);
-	lib->regBorrowers = 0;
+	lib->numBorrowers = numBorrowers;
+	lib->nextId       = 0;
 	return lib;
 }
 
@@ -105,7 +109,7 @@ void library_release (library_t* lib)
 	// Use the print mapping to free memory...
 	avl_any_inorder_print (lib->books, book_free);
 	avl_any_release (lib->books);
-	msg_queue_release (lib->msg_queue);
+	msg_queue_release (lib->msgQueue);
 }
 
 book_t* library_findbook (library_t* lib, int bookid)
@@ -126,6 +130,15 @@ void library_addbook (library_t* lib, int bookid)
 	{
 		book->copies++;
 	}
+}
+
+void library_GETNB(library_t* lib, any payload)
+{
+	assert(lib != NULL);
+	assert(payload != NULL);
+
+	int* id = (int*)payload;
+	*id = lib->numBorrowers;
 }
 
 void library_ADD(library_t* lib, any payload)
@@ -157,13 +170,13 @@ void library_BOOKS(library_t* lib, any payload)
 		if (book) book_print((any)book);
 	}
 	set_release(copyset);
-	//avl_any_inorder_print (lib->books, book_print);
 }
 
 void library_LOANS(library_t* lib, any payload)
 {
 	assert(lib != NULL);
 	assert(payload != NULL);
+	set* tempset = (set*)payload;
 
 	// TODO  List of borrowers...
 }
@@ -174,7 +187,7 @@ void library_RGST(library_t* lib, any payload)
 	assert(payload != NULL);
 
 	int* id = (int*)payload;
-	*id = lib->regBorrowers++;
+	*id = lib->nextId++;
 }
 
 void library_RQST(library_t* lib, any payload)
@@ -196,14 +209,15 @@ void* library_run (void* arg)
 
 	while (!shutdown)
 	{
-		msg_client_t* client = msg_queue_getclient (lib->msg_queue);
+		msg_client_t* client = msg_queue_getclient (lib->msgQueue);
 		if (client != NULL)
 		{
 			// Process request from client...
 			char* msgName = msg_client_getmsgname(client);
 			any   payload = msg_client_getpayload(client);
 
-			if      (strncmp(msgName, "ADD",   3) == 0) library_ADD   (lib, payload);
+			if      (strncmp(msgName, "GETNB", 5) == 0) library_GETNB (lib, payload);
+			else if (strncmp(msgName, "ADD",   3) == 0) library_ADD   (lib, payload);
 			else if (strncmp(msgName, "BOOKS", 5) == 0) library_BOOKS (lib, payload);
 			else if (strncmp(msgName, "LOANS", 5) == 0) library_LOANS (lib, payload);
 			else if (strncmp(msgName, "RGST",  4) == 0) library_RGST  (lib, payload);
@@ -236,18 +250,18 @@ main()
 
 	int i;
 	int error;
-	int numBorrowers = 1;
+	int numBorrowers = 2;
 	int numThreads = 2 + numBorrowers;
 	SAFE_MALLOC_ARRAY(pthread_t, threads, numThreads);
 
-	library_t* lib = library_create();
+	library_t* lib = library_create (numBorrowers);
 	pthread_create(&threads[0], &attr, library_run,   (void*)lib);
-	pthread_create(&threads[1], &attr, librarian_run, (void*)lib->msg_queue);
+	pthread_create(&threads[1], &attr, librarian_run, (void*)lib->msgQueue);
 
     // Create threads for borrowers
     for (i=2; i<numThreads; i++)
     {
-        error = pthread_create(&threads[i], &attr, borrower_run, (void*)lib->msg_queue);
+        error = pthread_create(&threads[i], &attr, borrower_run, (void*)lib->msgQueue);
         if (error != 0)
         {
             printf("Create failed at %i\n",i);
@@ -268,7 +282,7 @@ main()
 				break;
 		}
 		// nudge waiting processes...
-		msg_queue_nudge(lib->msg_queue);
+		msg_queue_nudge(lib->msgQueue);
     }
 
 	TRACE("Waiting for threads to close");

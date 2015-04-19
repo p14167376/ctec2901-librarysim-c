@@ -53,7 +53,7 @@ void borrower_RQST(borrower_t* brwr)
 	set* tempset = new_set (int_printer, int_compare);
 
 	int n;
-	int max = rand() % BORROWER_MAXBOOKSRQST;
+	int max = (rand() % (BORROWER_MAXBOOKSRQST - 1)) + 1;
 	for (n=0;n<max; n++)
 	{
 		long id = rand()%LIBRARY_MAXBOOKIDS;
@@ -111,5 +111,6 @@ void* borrower_run (void* arg)
 	}
 
 	msg_client_release (brwr.client);
+	while(!set_isempty(brwr.myBooks)) set_choose_item(brwr.myBooks);
 	set_release (brwr.myBooks);
 }
