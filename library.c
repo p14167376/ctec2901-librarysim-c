@@ -395,17 +395,34 @@ void process_cmdline(int argc, char *argv[], cmdline_t* cmdline)
 	}
 }
 
+void* userinput_run (void*)
+{
+    // wait for command to exit...
+    char inputBuffer[256];
+    while (!shutdown)
+    {
+    	printf ("Enter command ('q' to quit): ");
+		fgets (inputBuffer, sizeof(inputBuffer), stdin);
+		switch (inputBuffer[0])
+		{
+			case 'q':
+			case 'Q':
+				shutdown = 1;
+				break;
+		}
+		// nudge waiting processes...
+		msg_queue_nudge(lib->msgQueue);
+    }
+}
+
 main (int argc, char *argv[])
 {
 	// Read command line arguments...
 	// TODO
 	printf("\n\n");
-	printf("========================================"
-		   "=======================================\n");
-	printf("CTEC2901: Library Simulator             "
-		   "                      (Barnaby Stewart)\n");
-	printf("========================================"
-		   "=======================================\n");
+	printf("===============================================================================\n");
+	printf("CTEC2901: Library Simulator                                   (Barnaby Stewart)\n");
+	printf("===============================================================================\n");
 
 	srand(time(NULL));
 
@@ -431,22 +448,8 @@ main (int argc, char *argv[])
         	&attr, borrower_run, (void*)lib->msgQueue);
     }
 
-    // wait for command to exit...
-    char inputBuffer[256];
-    while (!shutdown)
-    {
-    	printf ("Enter command ('q' to quit): ");
-		fgets (inputBuffer, sizeof(inputBuffer), stdin);
-		switch (inputBuffer[0])
-		{
-			case 'q':
-			case 'Q':
-				shutdown = 1;
-				break;
-		}
-		// nudge waiting processes...
-		msg_queue_nudge(lib->msgQueue);
-    }
+    pthread_t inputThread;
+    SAFE_CREATE_THREAD(&inputThread, &attr, userinput_run, 0);
 
 	TRACE("Waiting for threads to close");
 	//for (i=0; i<numThreads; i++)
@@ -458,11 +461,9 @@ main (int argc, char *argv[])
 
 	pthread_attr_destroy(&attr);
 
-	printf("----------------------------------------"
-		   "---------------------------------------\n");
+	printf("-------------------------------------------------------------------------------\n");
 	printf("Program Complete\n");
-	printf("----------------------------------------"
-		   "---------------------------------------\n");
+	printf("-------------------------------------------------------------------------------\n");
 	return 0;
 }
 
