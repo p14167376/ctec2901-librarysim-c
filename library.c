@@ -124,6 +124,11 @@ void library_printbook (any x)
 	printf ("\n");
 }
 
+void library_printallbooks (library_t* lib)
+{
+	avl_any_inorder_print(lib->books, library_printbook);
+}
+
 void library_printborrower (library_t* lib, int brwr)
 {
 	/*
@@ -204,7 +209,24 @@ void library_RQST(library_t* lib, any payload)
 	assert(payload != NULL);
 	library_RQST_t* librq = (library_RQST_t*)payload;
 
-	// TODO
+	set* copyset = set_ints_create();
+	set_unionWith(copyset, librq->books);
+	while(!set_isempty(copyset))
+	{
+		int bookid = (long)set_choose_item(copyset);
+		book_t* book = library_findbook(lib, bookid);
+		if ( (book)
+		&&   (!set_isin(book->borrowerSet, (any)(long)librq->brwr))
+		&&   (set_count(book->borrowerSet) < book->copies) )  
+		{
+			set_insertInto(book->borrowerSet, (any)(long)librq->brwr);
+		}
+		else set_removeFrom (librq->books, (any)(long)bookid);
+	}
+	set_ints_release(copyset);
+
+	//TODO - this is for diagnostics!
+	library_printallbooks (lib);
 }
 
 void library_RTRN(library_t* lib, any payload)
@@ -213,7 +235,22 @@ void library_RTRN(library_t* lib, any payload)
 	assert(payload != NULL);
 	library_RQST_t* librq = (library_RQST_t*)payload;
 
-	// TODO
+	set* copyset = set_ints_create();
+	set_unionWith(copyset, librq->books);
+	while(!set_isempty(copyset))
+	{
+		long bookid = (long)set_choose_item(copyset);
+		book_t* book = library_findbook(lib, bookid);
+		if ( (book)
+		&&   (set_isin(book->borrowerSet, (any)(long)librq->brwr)) )
+		{
+			set_removeFrom(book->borrowerSet, (any)(long)librq->brwr);
+		}
+	}
+	set_ints_release(copyset);
+
+	//TODO - this is for diagnostics!
+	library_printallbooks (lib);
 }
 
 void* library_run (void* arg)

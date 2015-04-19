@@ -8,7 +8,7 @@
 #define LIBRARY_H
 
 
-#define LIBRARY_MAXBOOKIDS 20
+#define LIBRARY_MAXBOOKIDS 5 //20
 
 typedef struct
 {

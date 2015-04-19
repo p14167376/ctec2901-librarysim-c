@@ -19,9 +19,14 @@ set* set_ints_create()
 	return new_set (set_ints_printer, set_ints_compare);
 }
 
-void set_ints_release (set* s)
+void set_ints_removeall (set* s)
 {
 	while(!set_isempty(s)) set_choose_item(s);
+}
+
+void set_ints_release (set* s)
+{
+	set_ints_removeall(s);
 	set_release (s);
 }
 

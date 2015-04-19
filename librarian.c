@@ -29,10 +29,10 @@
 #include "library.h"
 
 
-#define LIBRARIAN_NUMBOOKSTOADD  60
-#define LIBRARIAN_DELAY         500 // milliseconds
-#define LIBRARIAN_MAXBOOKSRQST    5
-#define LIBRARIAN_MAXLOANSRQST    5
+#define LIBRARIAN_NUMBOOKSTOADD   60
+#define LIBRARIAN_DELAY         2000 // milliseconds
+#define LIBRARIAN_MAXBOOKSRQST     5
+#define LIBRARIAN_MAXLOANSRQST     5
 
 typedef struct
 {

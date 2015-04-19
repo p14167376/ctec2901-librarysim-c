@@ -35,8 +35,8 @@
 #include "library.h"
 
 
-#define BORROWER_DELAY        600 // milliseconds
-#define BORROWER_MAXBOOKSRQST 5
+#define BORROWER_DELAY        2000 // milliseconds
+#define BORROWER_MAXBOOKSRQST    5
 
 typedef struct
 {
@@ -84,6 +84,7 @@ void borrower_RTRN(borrower_t* brwr)
 	librq.brwr  = brwr->id;
 	librq.books = brwr->myBooks;
 	msg_client_send (brwr->client, "RTRN", (any)&librq);
+	set_ints_removeall(brwr->myBooks);
 }
 
 void* borrower_run (void* arg)
