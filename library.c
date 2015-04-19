@@ -148,14 +148,12 @@ void library_BOOKS(library_t* lib, any payload)
 	set* tempset = (set*)payload;
 
 	set* copyset = new_set(int_printer, int_compare);
-	/*
 	set_unionWith(copyset, tempset);
 	while(!set_isempty(copyset))
 	{
 		book_t* book = library_findbook(lib, (long)set_choose_item(copyset));
-		book_print((any)book);
+		if (book) book_print((any)book);
 	}
-	*/
 	set_release(copyset);
 	//avl_any_inorder_print (lib->books, book_print);
 }

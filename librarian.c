@@ -131,7 +131,7 @@ void* librarian_run (void* arg)
 			switch (action)
 			{
 				case 0: librarian_BOOKS(&lbrn); break;
-				case 1: //librarian_LOANS(&lbrn); break;
+				case 1: librarian_LOANS(&lbrn); break;
 					break;
 			}
 		}

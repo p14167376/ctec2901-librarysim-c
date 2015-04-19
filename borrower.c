@@ -95,8 +95,8 @@ void* borrower_run (void* arg)
 			action = rand()%2;
 			switch (action)
 			{
-				case 0: //borrower_RQST (&brwr); break;
-				case 1: //borrower_RTRN (&brwr); break;
+				case 0: borrower_RQST (&brwr); break;
+				case 1: borrower_RTRN (&brwr); break;
 					break;
 			}
 		}
