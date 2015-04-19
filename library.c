@@ -64,6 +64,8 @@ book_t* book_create (int id)
 
 void book_free (any x)
 {
+	assert(x != NULL);
+
 	book_t* book = (book_t*)x;
 	set_ints_release(book->borrowerSet);
 	SAFE_FREE(book);
@@ -71,6 +73,8 @@ void book_free (any x)
 
 int book_lessthan (any x, any y)
 {
+	assert(x != NULL);
+	assert(y != NULL);
 	return (int)(((book_t*)x)->id < ((book_t*)y)->id);
 }
 
@@ -86,6 +90,8 @@ library_t* library_create (int numBorrowers)
 
 void library_release (library_t* lib)
 {
+	assert(lib != NULL);
+
 	// Use the print mapping to free memory...
 	avl_any_inorder_print (lib->books, book_free);
 	avl_any_release (lib->books);
@@ -94,6 +100,9 @@ void library_release (library_t* lib)
 
 book_t* library_findbook (library_t* lib, int bookid)
 {
+	assert(lib != NULL);
+	assert(bookid >= 0);
+
 	book_t dummybook;
 	dummybook.id = bookid;
 	return (book_t*)(avl_any_find (lib->books, (any)&dummybook));
@@ -101,6 +110,9 @@ book_t* library_findbook (library_t* lib, int bookid)
 
 void library_addbook (library_t* lib, int bookid)
 {
+	assert(lib != NULL);
+	assert(bookid >= 0);
+
 	book_t* book = library_findbook (lib, bookid);
 	if (book == NULL)
 	{
@@ -114,6 +126,8 @@ void library_addbook (library_t* lib, int bookid)
 
 void library_printbook (any x)
 {
+	assert(x != NULL);
+
 	book_t* book = (book_t*)x;
 	printf ("Book %03d: %d Copies Owned; %d Copies on loan.", book->id, book->copies, set_count (book->borrowerSet));
 	if (set_count (book->borrowerSet))
@@ -124,22 +138,55 @@ void library_printbook (any x)
 	printf ("\n");
 }
 
-void library_printallbooks (library_t* lib)
+typedef struct gbfb_context_impl
 {
-	avl_any_inorder_print(lib->books, library_printbook);
+	int  brwr;
+	set* books;
+} gbfb_context_t;
+
+void library_checkbookforborrower (any x, any c)
+{
+	assert(x != NULL);
+	assert(c != NULL);
+
+	book_t* book = (book_t*)x;
+	gbfb_context_t* context = (gbfb_context_t*)c;
+
+	if (set_ints_isin(book->borrowerSet, context->brwr))
+	{
+		set_ints_insertinto (context->books, book->id);
+	}
+}
+
+set* library_getbooksforborrower (library_t* lib, int brwr)
+{
+	assert(lib != NULL);
+	assert(brwr >= 0);
+
+	gbfb_context_t context;
+	context.brwr  = brwr;
+	context.books = set_ints_create();
+	avl_any_inorder_map(lib->books, library_checkbookforborrower, (any)(&context));
+	return context.books;
 }
 
 void library_printborrower (library_t* lib, int brwr)
 {
-	/*
-	printf ("Borrower %03d: %d Copies Owned; %d Copies on loan.", book->id, book->copies, set_count (book->borrowerSet));
-	if (set_count (book->borrowerSet))
+	assert(lib != NULL);
+	assert(brwr >= 0);
+
+	set* books = library_getbooksforborrower(lib, brwr);
+	if (books)
 	{
-		printf (" Borrower(s) ");
-		set_print (book->borrowerSet);
+		printf("Borrower %d is borrowing books ", brwr);
+		set_print (books);
+		printf("\n", brwr);
 	}
-	*/
-	printf ("\n");
+	else
+	{
+		printf("Borrower %d has no books outstanding\n", brwr);
+	}
+	set_ints_release(books);
 }
 
 void library_GETNB(library_t* lib, any payload)
@@ -156,7 +203,6 @@ void library_ADD(library_t* lib, any payload)
 	assert(lib != NULL);
 	assert(payload != NULL);
 
-	// TODO Add the list of books to the library
 	list* newbooks = (list*)payload;
     list_goto_head(newbooks);
     while (list_cursor_inlist(newbooks))
@@ -170,10 +216,11 @@ void library_BOOKS(library_t* lib, any payload)
 {
 	assert(lib != NULL);
 	assert(payload != NULL);
-	set* tempset = (set*)payload;
 
+	set* tempset = (set*)payload;
 	set* copyset = set_ints_create();
 	set_unionWith(copyset, tempset);
+
 	while(!set_isempty(copyset))
 	{
 		book_t* book = library_findbook(lib, (long)set_choose_item(copyset));
@@ -186,12 +233,17 @@ void library_LOANS(library_t* lib, any payload)
 {
 	assert(lib != NULL);
 	assert(payload != NULL);
-	set* tempset = (set*)payload;
 
+	set* tempset = (set*)payload;
 	set* copyset = set_ints_create();
 	set_unionWith(copyset, tempset);
 
-	// TODO  List of borrowers...
+	while(!set_isempty(copyset))
+	{
+		long id = (long)set_choose_item(copyset);
+		library_printborrower(lib, id);
+	}
+	set_ints_release(copyset);
 }
 
 void library_RGST(library_t* lib, any payload)
@@ -207,50 +259,46 @@ void library_RQST(library_t* lib, any payload)
 {
 	assert(lib != NULL);
 	assert(payload != NULL);
-	library_RQST_t* librq = (library_RQST_t*)payload;
 
+	library_RQST_t* librq = (library_RQST_t*)payload;
 	set* copyset = set_ints_create();
 	set_unionWith(copyset, librq->books);
+
 	while(!set_isempty(copyset))
 	{
 		int bookid = (long)set_choose_item(copyset);
 		book_t* book = library_findbook(lib, bookid);
 		if ( (book)
-		&&   (!set_isin(book->borrowerSet, (any)(long)librq->brwr))
+		&&   (!set_ints_isin(book->borrowerSet, librq->brwr))
 		&&   (set_count(book->borrowerSet) < book->copies) )  
 		{
-			set_insertInto(book->borrowerSet, (any)(long)librq->brwr);
+			set_ints_insertinto(book->borrowerSet, librq->brwr);
 		}
-		else set_removeFrom (librq->books, (any)(long)bookid);
+		else set_ints_removefrom (librq->books, bookid);
 	}
 	set_ints_release(copyset);
-
-	//TODO - this is for diagnostics!
-	library_printallbooks (lib);
 }
 
 void library_RTRN(library_t* lib, any payload)
 {
 	assert(lib != NULL);
 	assert(payload != NULL);
-	library_RQST_t* librq = (library_RQST_t*)payload;
 
+	library_RQST_t* librq = (library_RQST_t*)payload;
 	set* copyset = set_ints_create();
 	set_unionWith(copyset, librq->books);
+
 	while(!set_isempty(copyset))
 	{
-		long bookid = (long)set_choose_item(copyset);
+		int bookid = (long)set_choose_item(copyset);
 		book_t* book = library_findbook(lib, bookid);
 		if ( (book)
-		&&   (set_isin(book->borrowerSet, (any)(long)librq->brwr)) )
+		&&   (set_ints_isin(book->borrowerSet, librq->brwr)) )
 		{
-			set_removeFrom(book->borrowerSet, (any)(long)librq->brwr);
+			set_ints_removefrom(book->borrowerSet, librq->brwr);
 		}
 	}
 	set_ints_release(copyset);
-
-	//TODO - this is for diagnostics!
-	library_printallbooks (lib);
 }
 
 void* library_run (void* arg)

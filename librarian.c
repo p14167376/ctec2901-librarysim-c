@@ -43,8 +43,6 @@ typedef struct
 void librarian_ADD (librarian_t* lbrn)
 {
 	assert(lbrn != NULL);
-	printf ("LIBRARIAN: Send ADD (Generate random books for the library)\n");
-
 	list* templist = new_list(set_ints_compare);
 
 	int n;
@@ -53,7 +51,6 @@ void librarian_ADD (librarian_t* lbrn)
 		long id = rand()%LIBRARY_MAXBOOKIDS;
 		list_ins_after(templist, (any)id);
 	}
-
 	msg_client_send (lbrn->client, "ADD", (any)templist);
 
 	list_release(templist);
@@ -62,11 +59,6 @@ void librarian_ADD (librarian_t* lbrn)
 void librarian_BOOKS (librarian_t* lbrn)
 {
 	assert(lbrn != NULL);
-	//printf ("LIBRARIAN: Send BOOKS\n");
-	char buffer[1024];
-	sprintf (buffer, "LIBRARIAN: Send BOOKS[");
-	char* bufferPtr = buffer+strlen(buffer);
-
 	set* tempset = set_ints_create();
 
 	int n;
@@ -75,13 +67,7 @@ void librarian_BOOKS (librarian_t* lbrn)
 	{
 		long id = rand()%LIBRARY_MAXBOOKIDS;
 		set_insertInto(tempset, (any)id);
-		bufferPtr = buffer+strlen(buffer);
-		sprintf(bufferPtr, " %d", id);
 	}
-	bufferPtr = buffer+strlen(buffer);
-	sprintf(bufferPtr, " ]\n");
-	printf(buffer);
-
 	msg_client_send (lbrn->client, "BOOKS", tempset);
 
 	set_ints_release(tempset);
@@ -90,11 +76,6 @@ void librarian_BOOKS (librarian_t* lbrn)
 void librarian_LOANS (librarian_t* lbrn)
 {
 	assert(lbrn != NULL);
-	//printf ("LIBRARIAN: Send LOANS\n");
-	char buffer[1024];
-	sprintf (buffer, "LIBRARIAN: Send LOANS[");
-	char* bufferPtr = buffer+strlen(buffer);
-
 	set* tempset = set_ints_create();
 
 	int n;
@@ -103,14 +84,7 @@ void librarian_LOANS (librarian_t* lbrn)
 	{
 		long id = rand() % lbrn->numBorrowers;
 		set_insertInto(tempset, (any)id);
-		bufferPtr = buffer+strlen(buffer);
-		sprintf(bufferPtr, " %d", id);
 	}
-	bufferPtr = buffer+strlen(buffer);
-	sprintf(bufferPtr, " ]\n");
-	printf(buffer);
-
-
 	msg_client_send (lbrn->client, "LOANS", tempset);
 
 	set_ints_release(tempset);

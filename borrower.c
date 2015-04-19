@@ -60,16 +60,11 @@ void borrower_RQST(borrower_t* brwr)
 			set_insertInto(tempset, (any)id);
 		}
 	}
-	printf ("BORROWER %d: Requested Books ", brwr->id);
-	set_print(tempset); printf("\n");
 
 	library_RQST_t librq;
 	librq.brwr  = brwr->id;
 	librq.books = tempset;
 	msg_client_send (brwr->client, "RQST", (any)&librq);
-
-	printf ("BORROWER %d: Received Books ", brwr->id);
-	set_print(tempset); printf("\n");
 
 	set_unionWith(brwr->myBooks, tempset);
 
@@ -78,8 +73,6 @@ void borrower_RQST(borrower_t* brwr)
 
 void borrower_RTRN(borrower_t* brwr)
 {
-	printf ("BORROWER %d: Send RTRN\n", brwr->id);
-
 	library_RQST_t librq;
 	librq.brwr  = brwr->id;
 	librq.books = brwr->myBooks;

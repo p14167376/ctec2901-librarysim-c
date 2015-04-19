@@ -10,8 +10,11 @@
 #include "set.h"
 
 set* set_ints_create();
-void set_ints_removeall (set* s);
-void set_ints_release   (set* s);
+int  set_ints_isin       (set* s, int n);
+void set_ints_insertinto (set* s, int n);
+void set_ints_removefrom (set* s, int n);
+void set_ints_removeall  (set* s);
+void set_ints_release    (set* s);
 
 void set_ints_printer(any x);
 int  set_ints_compare(any x, any y);

@@ -19,6 +19,10 @@ set* set_ints_create()
 	return new_set (set_ints_printer, set_ints_compare);
 }
 
+int  set_ints_isin       (set* s, int n) {return set_isin (s,(any)(long)n);}
+void set_ints_insertinto (set* s, int n) {set_insertInto (s,(any)(long)n);}
+void set_ints_removefrom (set* s, int n) {set_removeFrom (s,(any)(long)n);}
+
 void set_ints_removeall (set* s)
 {
 	while(!set_isempty(s)) set_choose_item(s);

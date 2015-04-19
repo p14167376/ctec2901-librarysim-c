@@ -4,8 +4,10 @@
 // Implementation file for AVL Tree struct
 // Original Author: David Smallwood
 // Modifications:
-//  - Added 'avl_any_find()' function.
+//  - Added avl_any_find() function.
+//  - Added avl_any_inorder_map() function.
 //  - Use SAFE_MALLOC(), SAFE_MALLOC_EXISTING() & SAFE_FREE()
+//  - Ensured max line length of 80 to suit assignment criteria :p
 //---------------------------------------------------------------------------
 
 //#define TRACE_ON
@@ -135,22 +137,25 @@ struct node* rotate_right(struct node *p)
 
 struct node* ensure_balance(struct node *p)
 {
+    // trivially balanced - return now
     if (p==NULL)
-        return p;                                   // trivially balanced - return now
+        return p;
 
     p->height = 1 + MAX(HEIGHT(p->left),HEIGHT(p->right));
-    
-    if ( HEIGHT(p->left) - HEIGHT(p->right) > 1) {  // left-heavy  - rebalance needed
 
-       if (HEIGHT(p->left->left) > HEIGHT(p->left->right))
+    // left-heavy  - rebalance needed
+    if ( HEIGHT(p->left) - HEIGHT(p->right) > 1)
+    {
+        if (HEIGHT(p->left->left) > HEIGHT(p->left->right))
             p = rotate_right(p);
         else {
             p->left = rotate_left(p->left);
             p = rotate_right(p);
         }
     }
-    else
-    if ( HEIGHT(p->right) - HEIGHT(p->left) > 1) {  // right-heavy - rebalance needed
+    // right-heavy - rebalance needed
+    else if ( HEIGHT(p->right) - HEIGHT(p->left) > 1)
+    {
 
         if (HEIGHT(p->right->right) > HEIGHT(p->right->left))
            p = rotate_left(p);
@@ -159,7 +164,7 @@ struct node* ensure_balance(struct node *p)
            p = rotate_left(p);
         }
     }
-    else                                            // balanced - no rebalance needed
+    else// balanced - no rebalance needed
         ;
         
     return p;
@@ -175,10 +180,12 @@ struct node * ins(avl_any *t, any x, struct node *p)
         p->item   = x;
         (t->size)++;
     }
-    else if (LT(x,p->item)) {                       // inserting into left sub-tree
+    // inserting into left sub-tree
+    else if (LT(x,p->item)) {
         p->left = ins(t, x, p->left);
-    }   
-    else if (LT(p->item,x)) {                       // inserting into right sub-tree
+    }
+    // inserting into right sub-tree
+    else if (LT(p->item,x)) {
         p->right = ins(t, x, p->right);
     }
 
@@ -207,8 +214,9 @@ struct node * del(avl_any *t, any x, struct node *p)
 {
     struct node * n;
     
+    // do nothing - data not in tree
     if (p == NULL)
-        ;                                       // do nothing - data not in tree
+        ;
         
     else if (LT(x,p->item)) 
         p->left = del(t, x, p->left);
@@ -216,22 +224,30 @@ struct node * del(avl_any *t, any x, struct node *p)
     else if (LT(p->item,x))
         p->right = del(t, x, p->right);
     
-    else if (p->left!=NULL && p->right!=NULL) { // found and has two children
-        n = findmin(p->right);                  // get smallest in right tree
-        p->item = n->item;                      // overwrite the item to be deleted
-        p->right = del(t, p->item, p->right);   // del the duplicate item in right tree
+    // found and has two children
+    // get smallest in right tree
+    // overwrite the item to be deleted
+    // del the duplicate item in right tree
+    else if (p->left!=NULL && p->right!=NULL)
+    {
+        n = findmin(p->right);
+        p->item = n->item;
+        p->right = del(t, p->item, p->right);
     }
-    
-    else {                                      // found and has at most one child
+
+    // found and has at most one child    
+    else {
         n = p;
         if(p->left == NULL)
-            p = p->right;                       // promote the right tree
+            // promote the right tree
+            p = p->right;
             
-        else if (p->right == NULL)              // or...
-            p = p->left;                        // promote the left tree
+        else if (p->right == NULL)
+            // promote the left tree
+            p = p->left;
 
-        (t->size)--;                            // reduce the count
-        SAFE_FREE(n);                                // reclaim memory
+        (t->size)--;  // reduce the count
+        SAFE_FREE(n); // reclaim memory
     }
     
     return ensure_balance(p);
@@ -329,6 +345,23 @@ void avl_any_simple_print(avl_any *t, void (* item_print)(any item))
 {
     assert(t!=NULL);
     simple_print(t->root,0,item_print);
+}
+
+void inorder_map(struct node *p,
+    void (* item_process)(any item, any context), any context)
+{
+    if (p != NULL)
+    {
+        inorder_map(p->left, item_process, context);
+        item_process (p->item, context);
+        inorder_map(p->right, item_process, context);
+    }
+}
+void avl_any_inorder_map(avl_any *t,
+    void (* item_process)(any item, any context), any context)
+{
+    assert(t!=NULL);
+    inorder_map(t->root, item_process, context);
 }
 
 void avl_any_release(avl_any *t)
