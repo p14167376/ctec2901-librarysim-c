@@ -60,7 +60,7 @@ void* userinput_run (void* x)
     char inputBuffer[256];
     while (!shutdown)
     {
-    	printf ("Enter command ('q' to quit): ");
+    	printf ("Enter command ('q' to quit):\n");
 		fgets (inputBuffer, sizeof(inputBuffer), stdin);
 		switch (inputBuffer[0])
 		{

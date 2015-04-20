@@ -27,6 +27,7 @@
 #define TRACE_ON
 #include "smalloc.h"
 #include "trace.h"
+#include "terminal.h"
 #include "mvar.h"
 #include "set_ints.h"
 #include "avl_any.h"
@@ -36,8 +37,6 @@
 #include "librarian.h"
 #include "borrower.h"
 
-
-#define DEFAULT_NUM_BORROWERS 20
 
 
 #define SAFE_CREATE_THREAD(t,a,f,d)                                    \
@@ -246,6 +245,7 @@ void library_BOOKS(library_t* lib, any payload)
 {
 	assert(lib != NULL);
 	assert(payload != NULL);
+	terminal_settextcyan(1);
 	printf ("MSG(BOOKS): Displaying status of selected books..............................\n");
 
 	set* tempset = (set*)payload;
@@ -259,12 +259,14 @@ void library_BOOKS(library_t* lib, any payload)
 	}
 	set_ints_release(copyset);
 	printf (".............................................................................\n");
+	terminal_reset();
 }
 
 void library_LOANS(library_t* lib, any payload)
 {
 	assert(lib != NULL);
 	assert(payload != NULL);
+	terminal_settextgreen(1);
 	printf ("MSG(LOANS): Displaying status of selected borrowers..........................\n");
 
 	set* tempset = (set*)payload;
@@ -278,6 +280,7 @@ void library_LOANS(library_t* lib, any payload)
 	}
 	set_ints_release(copyset);
 	printf (".............................................................................\n");
+	terminal_reset();
 }
 
 void library_RGST(library_t* lib, any payload)
@@ -299,6 +302,7 @@ void library_RQST(library_t* lib, any payload)
 	set* copyset = set_ints_create();
 	set_unionWith(copyset, librq->books);
 
+	terminal_settextyellow(1);
 	printf ("MSG(RQST): Borrower %02d, Requests Books", librq->brwr);
 	set_print (librq->books);
 
@@ -319,6 +323,7 @@ void library_RQST(library_t* lib, any payload)
 	printf (", Got");
 	set_print (librq->books);
 	printf("\n");
+	terminal_reset();
 }
 
 void library_RTRN(library_t* lib, any payload)
@@ -330,6 +335,7 @@ void library_RTRN(library_t* lib, any payload)
 	set* copyset = set_ints_create();
 	set_unionWith(copyset, librq->books);
 
+	terminal_settextyellow(0);
 	printf ("MSG(RTRN): Borrower %02d Returns Books", librq->brwr);
 	set_print (librq->books);
 	printf("\n");
@@ -345,6 +351,7 @@ void library_RTRN(library_t* lib, any payload)
 		}
 	}
 	set_ints_release(copyset);
+	terminal_reset();
 }
 
 void* library_run (void* arg)
