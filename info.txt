@@ -56,29 +56,16 @@ user input. If the user enters a quit command then this thread will exit
 normally anyway. If the program times out while still waiting for user input
 in this thread, then the main thread can cancel the user input thread.
 
-I created a number of ancillary files with helper functions and variables.
-- shutdown.h/c, global shutdown variable and functions for delay which
-  still allowed shutdown.
-- 
 
 // Summary
 //---------------------------------------------------------------------------
 
-The program fulfills all of the basic requirements given:
-  - Creates a single thread for the library
-  - Creates a single thread for the librarian
-  - Creates multiple threads for borrowers
-  - Librarian and borrowers interact with the library through thread safe
-    passing of messages.
-  - Avoids deadlocks and other concurrency pitfalls
-  - Passes data using appropriate data structures
-  - Accepts a command line argument for setting the number of borrowers
-
- Also allows the following:
-  - Accepts a cmd line argument for specifying a time limit.
-  - Allows user termination of the program by typing 'q' and return.
-  - Also command line options for the following:
-  -  - displaying command line usage
-  -  - set range for book id's, number of books
-  -  - borrower/librarian delay and request sizes
+The program fulfills all of the given requirements, demonstrating safe
+commnication between threads using a message queue and avoids concurrency
+pitfalls such as race conditions, deadlocks and livelocks. Lists, sets,
+queues and avl trees are all used to handle data. All of the use cases are
+demonstrated and the program provides a number of additional features. These
+are extended command line configuration of simulation conditions; ability to
+end by user input or timeout; colour coding of the output for easier
+comprehension.
 
