@@ -349,7 +349,7 @@ any avl_any_find (avl_any *t, any x)
 
 void inorder_map(struct node *p, void (* item_process)(any item, any context), any context)
 {
-    assert(p != NULL);
+    // do not assert p, will be null for leaf nodes
     assert(item_process != NULL);
     // do not assert context - NULL may be valid
 

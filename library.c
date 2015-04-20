@@ -150,8 +150,8 @@ void library_addbook (library_t* lib, int bookid)
 void library_printbook (any x)
 {
 	assert(x != NULL);
-
 	book_t* book = (book_t*)x;
+
 	printf ("Book %03d: Owned(%d), Loaned(%d)",
 		book->id, book->copies, set_count (book->borrowerSet));
 	if (set_count (book->borrowerSet))
@@ -162,6 +162,9 @@ void library_printbook (any x)
 	printf ("\n");
 }
 
+// Checking books for borrowers:
+//   avl_any_inorder_map() calls the given function for each element.
+//   the context passed tells the function what we are looking for.
 typedef struct gbfb_context_impl
 {
 	int  brwr;
@@ -200,6 +203,7 @@ void library_printborrower (library_t* lib, int brwr)
 	assert(lib != NULL);
 	assert(brwr >= 0);
 
+	// work out what books a borrower has and display the results
 	set* books = library_getbooksforborrower(lib, brwr);
 	if ( (books)
 	&&   (set_count(books) > 0) )
@@ -215,6 +219,7 @@ void library_printborrower (library_t* lib, int brwr)
 	set_ints_release(books);
 }
 
+// handle a message to request the number of borrowers
 void library_GETNB(library_t* lib, any payload)
 {
 	assert(lib != NULL);
@@ -224,6 +229,7 @@ void library_GETNB(library_t* lib, any payload)
 	*id = lib->numBorrowers;
 }
 
+// handle a message to add a set of books to the library
 void library_ADD(library_t* lib, any payload)
 {
 	assert(lib != NULL);
@@ -241,6 +247,7 @@ void library_ADD(library_t* lib, any payload)
     }
 }
 
+// handle a message to display status of specific books
 void library_BOOKS(library_t* lib, any payload)
 {
 	assert(lib != NULL);
@@ -262,6 +269,7 @@ void library_BOOKS(library_t* lib, any payload)
 	terminal_reset();
 }
 
+// handle a message to display status of specific borrowers
 void library_LOANS(library_t* lib, any payload)
 {
 	assert(lib != NULL);
@@ -283,6 +291,7 @@ void library_LOANS(library_t* lib, any payload)
 	terminal_reset();
 }
 
+// handle a message to register a borrower (and get it's id)
 void library_RGST(library_t* lib, any payload)
 {
 	assert(lib != NULL);
@@ -293,6 +302,7 @@ void library_RGST(library_t* lib, any payload)
 	//printf ("MSG(RGST): Registered borrower (id %d)\n", *id);
 }
 
+// handle a request to borrow some books
 void library_RQST(library_t* lib, any payload)
 {
 	assert(lib != NULL);
@@ -302,17 +312,19 @@ void library_RQST(library_t* lib, any payload)
 	set* copyset = set_ints_create();
 	set_unionWith(copyset, librq->books);
 
+	// show which books are wanted
 	terminal_settextyellow(1);
 	printf ("MSG(RQST): Borrower %02d, Requests Books", librq->brwr);
 	set_print (librq->books);
 
+	// check which books they can have
 	while(!set_isempty(copyset))
 	{
 		int bookid = (long)set_choose_item(copyset);
 		book_t* book = library_findbook(lib, bookid);
-		if ( (book)
-		&&   (!set_ints_isin(book->borrowerSet, librq->brwr))
-		&&   (set_count(book->borrowerSet) < book->copies) )  
+		if ( (book)                                           // is the book in the library
+		&&   (!set_ints_isin(book->borrowerSet, librq->brwr)) // does borrower have book already
+		&&   (set_count(book->borrowerSet) < book->copies) )  // are there any copies left
 		{
 			set_ints_insertinto(book->borrowerSet, librq->brwr);
 		}
@@ -320,12 +332,14 @@ void library_RQST(library_t* lib, any payload)
 	}
 	set_ints_release(copyset);
 
+	// show which books were actually loaned
 	printf (", Got");
 	set_print (librq->books);
 	printf("\n");
 	terminal_reset();
 }
 
+// handle a message returning books to the library
 void library_RTRN(library_t* lib, any payload)
 {
 	assert(lib != NULL);
@@ -335,11 +349,13 @@ void library_RTRN(library_t* lib, any payload)
 	set* copyset = set_ints_create();
 	set_unionWith(copyset, librq->books);
 
+	// list the books
 	terminal_settextyellow(0);
 	printf ("MSG(RTRN): Borrower %02d Returns Books", librq->brwr);
 	set_print (librq->books);
 	printf("\n");
 
+	// upudate the record for each book
 	while(!set_isempty(copyset))
 	{
 		int bookid = (long)set_choose_item(copyset);
@@ -359,6 +375,7 @@ void* library_run (void* arg)
 	assert(arg != NULL);
 	library_t* lib = (library_t*)arg;
 
+	// loop indefinitely responding to messages until shutdown
 	while (!shutdown)
 	{
 		msg_client_t* client = msg_queue_getclient (lib->msgQueue);

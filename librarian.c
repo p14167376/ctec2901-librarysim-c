@@ -39,8 +39,9 @@ typedef struct
 void librarian_ADD (librarian_t* lbrn)
 {
 	assert(lbrn != NULL);
-	list* templist = new_list(set_ints_compare);
 
+	// create a list of random books to add and send to library
+	list* templist = new_list(set_ints_compare);
 	int n;
 	for (n=0; n<config.lbryNumBooks; n++)
 	{
@@ -55,8 +56,9 @@ void librarian_ADD (librarian_t* lbrn)
 void librarian_BOOKS (librarian_t* lbrn)
 {
 	assert(lbrn != NULL);
-	set* tempset = set_ints_create();
 
+	// create a list of random books and ask for their status
+	set* tempset = set_ints_create();
 	int n;
 	int max = (rand() % (config.lbrnRqstSize - 1)) + 1;
 	for (n=0;n<max; n++)
@@ -72,8 +74,9 @@ void librarian_BOOKS (librarian_t* lbrn)
 void librarian_LOANS (librarian_t* lbrn)
 {
 	assert(lbrn != NULL);
-	set* tempset = set_ints_create();
 
+	// create a list of random borrowers and ask for their status
+	set* tempset = set_ints_create();
 	int n;
 	int max = (rand() % (config.lbrnRqstSize - 1)) + 1;
 	for (n=0;n<max; n++)
@@ -91,13 +94,15 @@ void* librarian_run (void* arg)
 	assert(arg != NULL);
 	library_t* lib = (library_t*)arg;
 
+	// set up the librarian details and get the number of borrowers
 	librarian_t lbrn;
 	lbrn.client = msg_client_create (library_getqueue(lib));
-
 	msg_client_send (lbrn.client, "GETNB", (any)(&lbrn.numBorrowers));
 
+	// seed library with some books
 	librarian_ADD (&lbrn);
 
+	// until shutdown we loop, sending random messages
 	int action;
 	while (!shutdown)
 	{

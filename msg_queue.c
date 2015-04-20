@@ -7,7 +7,9 @@
 // There are two structures used here:
 //  The msg_queue_t is effectively the server, listening for messages from
 //  clients which instantiate a msg_client_t structure.
-// 
+//  The msg_client_t which handles sending requests to the queue.
+//--------------------------------------------------------------------------- 
+
 
 #include <assert.h>
 #include <pthread.h>
@@ -18,6 +20,7 @@
 
 #include "shutdown.h"
 #include "msg_queue.h"
+
 
 struct msg_queue_impl
 {
@@ -45,6 +48,8 @@ msg_queue_t* msg_queue_create()
 
 void msg_queue_ackall(msg_queue_t* msgq)
 {
+	assert(msgq != NULL);
+
 	// Ack and remove any waiting messages...
 	// (must ack to wake any waiting client threads)
 	msg_client_t* client;
@@ -91,6 +96,7 @@ int msg_client_send (msg_client_t* client, char* msgName, any payload)
 	assert(msgName != NULL);
 	// don't assert payload - could be NULL if we had a simple message
 
+	// get a lock on the queue
     pthread_mutex_lock(&(client->msgq->mutex));
     if (shutdown)
     {
@@ -98,13 +104,14 @@ int msg_client_send (msg_client_t* client, char* msgName, any payload)
         return 0;
 	}
 
+	// add request to queue, tell the receiver and then free the queue
 	client->msgName = msgName;
 	client->payload = payload;
 	queue_any_enqueue (client->msgq->messages, (any)client);
-
 	pthread_cond_broadcast (&client->msgq->msg_waiting);
 	pthread_mutex_unlock (&client->msgq->mutex);
 
+	// wait for ack
 	if (take_mvar (client->ack) != NULL) return 1;
 	return 0;
 }
@@ -132,6 +139,7 @@ void msg_queue_nudge (msg_queue_t* msgq)
 
 msg_client_t* msg_queue_getclient (msg_queue_t* msgq)
 {
+	// gets the next message/client from the queue
 	pthread_mutex_lock(&msgq->mutex);
 
 	while (queue_any_isempty(msgq->messages))

@@ -46,8 +46,9 @@ typedef struct
 void borrower_RQST(borrower_t* brwr)
 {
 	assert(brwr != NULL);
-	set* tempset = set_ints_create();
 
+	// create a list of random book ids
+	set* tempset = set_ints_create();
 	int n;
 	int max = (rand() % (config.brwrRqstSize - 1)) + 1;
 	for (n=0;n<max; n++)
@@ -59,19 +60,22 @@ void borrower_RQST(borrower_t* brwr)
 		}
 	}
 
+	// request the books from the library
 	library_RQST_t librq;
 	librq.brwr  = brwr->id;
 	librq.books = tempset;
-	msg_client_send (brwr->client, "RQST", (any)&librq);
+	msg_client_send(brwr->client, "RQST", (any)&librq);
 
+	// add any books returned to our set
 	set_unionWith(brwr->myBooks, tempset);
-
 	set_ints_release(tempset);
 }
 
 void borrower_RTRN(borrower_t* brwr)
 {
 	assert(brwr != NULL);
+
+	// return all the books that we have borrowed (if any)
 	if(set_count(brwr->myBooks) > 0)
 	{
 		library_RQST_t librq;
@@ -87,19 +91,19 @@ void* borrower_run (void* arg)
 	assert(arg != NULL);
 	library_t* lib = (library_t*)arg;
 
+	// set up the borrower details (and register with the library)
 	borrower_t brwr;
 	brwr.id      = -1;
 	brwr.myBooks = set_ints_create();
 	brwr.client  = msg_client_create (library_getqueue(lib));
-
 	msg_client_send (brwr.client, "RGST", (any)(&brwr.id));
 
+	// until shutdown we loop, sending random messages
 	int action;
 	while (!shutdown)
 	{
 		long delay = config.brwrDelay + (rand()%config.brwrOffset);
 		millisleep_allowing_shutdown (delay);
-		//millisleep_allowing_shutdown (config.brwrDelay);
 
 		if (!shutdown)
 		{

@@ -4,7 +4,7 @@
 // Implementation file for terminal functions
 // Author: Barnaby Stewart (P14167376)
 //---------------------------------------------------------------------------
-// Allow changing colour, etc using ANSI escape codes.
+// Allow changing colour, etc (using ANSI escape codes).
 //---------------------------------------------------------------------------
 
 #include <stdio.h>
