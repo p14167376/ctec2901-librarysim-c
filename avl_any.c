@@ -47,27 +47,6 @@ avl_any * new_avl_any(rel_func lt)
 #define LT(A,B) t->lt(A,B)
 
 
-any findin (avl_any *t, any x, struct node *p)
-{
-    if (p==NULL)
-        return 0;
-
-    else if (LT(x,p->item))
-        return findin(t, x, p->left);
-
-    else if (LT(p->item,x))
-        return findin(t, x, p->right);
-
-    else
-        return p->item;
-}
-
-any avl_any_find (avl_any *t, any x)
-{
-    assert(t!=NULL);
-    return findin (t,x,t->root);
-}
-
 
 #define ABS(X)    ((X<0) ? -(X) : X)
 #define MAX(X,Y)  ((X>Y) ? X : Y)
@@ -347,9 +326,33 @@ void avl_any_simple_print(avl_any *t, void (* item_print)(any item))
     simple_print(t->root,0,item_print);
 }
 
-void inorder_map(struct node *p,
-    void (* item_process)(any item, any context), any context)
+any findin (avl_any *t, any x, struct node *p)
 {
+    if (p==NULL)
+        return 0;
+
+    else if (LT(x,p->item))
+        return findin(t, x, p->left);
+
+    else if (LT(p->item,x))
+        return findin(t, x, p->right);
+
+    else
+        return p->item;
+}
+
+any avl_any_find (avl_any *t, any x)
+{
+    assert(t!=NULL);
+    return findin (t,x,t->root);
+}
+
+void inorder_map(struct node *p, void (* item_process)(any item, any context), any context)
+{
+    assert(p != NULL);
+    assert(item_process != NULL);
+    // do not assert context - NULL may be valid
+
     if (p != NULL)
     {
         inorder_map(p->left, item_process, context);
@@ -357,15 +360,18 @@ void inorder_map(struct node *p,
         inorder_map(p->right, item_process, context);
     }
 }
-void avl_any_inorder_map(avl_any *t,
-    void (* item_process)(any item, any context), any context)
+
+void avl_any_inorder_map(avl_any *t, void (* item_process)(any item, any context), any context)
 {
     assert(t!=NULL);
+    assert(item_process != NULL);
+    // do not assert context - NULL may be valid
+
     inorder_map(t->root, item_process, context);
 }
 
 void avl_any_release(avl_any *t)
 {
-    assert(t!=NULL);
+    assert(t != NULL);
     SAFE_FREE(t);
 }

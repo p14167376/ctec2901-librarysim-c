@@ -27,7 +27,6 @@ The files for the simulation are as follows:
 - smalloc.h, Macro to automatically check for failure when allocating memory
 - terminal.h/c, functions for ANSI terminal commands (eg setting text colour)
 - trace.h, Macro for trace message diagnostics (used during development)
-- makefile, does what it says on the tin!
 
 The threading process itself actually worked very much as intended with few
 problems. Or rather, the problems that I had were down to simple coding

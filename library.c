@@ -246,7 +246,7 @@ void library_BOOKS(library_t* lib, any payload)
 	assert(lib != NULL);
 	assert(payload != NULL);
 	terminal_settextcyan(1);
-	printf ("MSG(BOOKS): Displaying status of selected books..............................\n");
+	printf ("MSG(BOOKS): Displaying status of selected books - - - - - - - - - - - - - - -\n");
 
 	set* tempset = (set*)payload;
 	set* copyset = set_ints_create();
@@ -258,7 +258,7 @@ void library_BOOKS(library_t* lib, any payload)
 		if (book) library_printbook((any)book);
 	}
 	set_ints_release(copyset);
-	printf (".............................................................................\n");
+	printf ("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n");
 	terminal_reset();
 }
 
@@ -267,7 +267,7 @@ void library_LOANS(library_t* lib, any payload)
 	assert(lib != NULL);
 	assert(payload != NULL);
 	terminal_settextgreen(1);
-	printf ("MSG(LOANS): Displaying status of selected borrowers..........................\n");
+	printf ("MSG(LOANS): Displaying status of selected borrowers - - - - - - - - - - - - -\n");
 
 	set* tempset = (set*)payload;
 	set* copyset = set_ints_create();
@@ -279,7 +279,7 @@ void library_LOANS(library_t* lib, any payload)
 		library_printborrower(lib, id);
 	}
 	set_ints_release(copyset);
-	printf (".............................................................................\n");
+	printf ("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n");
 	terminal_reset();
 }
 

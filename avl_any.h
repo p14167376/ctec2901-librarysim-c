@@ -24,9 +24,7 @@ void avl_any_postorder_print(avl_any *t, void (* item_print)(any item));
 void avl_any_simple_print(avl_any *t, void (* item_print)(any item));
 
 any  avl_any_find        (avl_any *t, any key);
-void avl_any_inorder_map (avl_any *t,
-	                      void (* item_process)(any item, any context),
-	                      any context);
+void avl_any_inorder_map (avl_any *t, void (* item_process)(any item, any context), any context);
 
 void avl_any_release(avl_any *t);
 #endif

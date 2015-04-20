@@ -16,7 +16,7 @@ void set_ints_removefrom (set* s, int n);
 void set_ints_removeall  (set* s);
 void set_ints_release    (set* s);
 
-void set_ints_printer(any x);
-int  set_ints_compare(any x, any y);
+void set_ints_printer    (any x);
+int  set_ints_compare    (any x, any y);
 
 #endif//SET_INTS_H
