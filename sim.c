@@ -24,6 +24,7 @@
 // Project Headers
 #include "smalloc.h"
 #include "trace.h"
+#include "terminal.h"
 #include "shutdown.h"
 #include "library.h"
 #include "librarian.h"
@@ -32,7 +33,8 @@
 
 
 #define DEFAULT_BORROWERS_QTY        20
-#define DEFAULT_BORROWERS_DELAY    5000
+#define DEFAULT_BORROWERS_DELAY    1000
+#define DEFAULT_BORROWERS_OFFSET    500
 #define DEFAULT_BORROWER_RQSTSIZE     5
 #define DEFAULT_LIBRARIAN_DELAY    5000
 #define DEFAULT_LIBRARIAN_RQSTSIZE    5
@@ -49,7 +51,9 @@ config_t config;
         int error = pthread_create(t,a,f,d);                           \
         if (error != 0)                                                \
         {                                                              \
+        	terminal_settextred(1);                                    \
             printf("ERROR: pthread_create() failed, code %i\n",error); \
+            terminal_reset();                                          \
             exit(1);                                                   \
         }                                                              \
     }
@@ -82,6 +86,7 @@ void display_help()
 	printf("'-t  N'  Time limit for the simulation in seconds (e.g. '-t 30')\n");
 	printf("'-bn N'  Number of borrowers (e.g. '-bn 30')\n");
 	printf("'-bd N'  Borrower delay in milliseconds (e.g. '-bd 1000')\n");
+	printf("'-bo N'  Random offset to the borrower delay (e.g. '-bo 500')\n");
 	printf("'-br N'  Borrower request size (books to request per message))\n");
 	printf("'-ld N'  Librarian delay in milliseconds (e.g. '-ld 5000')\n");
 	printf("'-lr N'  Librarian request size (books/loans per message))\n");
@@ -104,7 +109,9 @@ void display_help()
 		else                                                     \
 		{                                                        \
 			success = 0;                                         \
+        	terminal_settextred(1);                              \
 			printf("ERROR: No value given after '%s'\n", param); \
+        	terminal_reset();                                    \
 		}                                                        \
 	}
 
@@ -115,6 +122,7 @@ int process_cmdline(int argc, char *argv[], config_t* config)
 	config->timeLimit     = 0; // 0 is infinite
 	config->brwrQty       = DEFAULT_BORROWERS_QTY;
 	config->brwrDelay     = DEFAULT_BORROWERS_DELAY;
+	config->brwrOffset    = DEFAULT_BORROWERS_OFFSET;
 	config->brwrRqstSize  = DEFAULT_BORROWER_RQSTSIZE;
 	config->lbrnDelay     = DEFAULT_LIBRARIAN_DELAY;
 	config->lbrnRqstSize  = DEFAULT_LIBRARIAN_RQSTSIZE;
@@ -136,19 +144,22 @@ int process_cmdline(int argc, char *argv[], config_t* config)
 		ELSEIF_CHECK_INT_PARAM("-bn", config->brwrQty,       "Number of borrowers")
 		ELSEIF_CHECK_INT_PARAM("-bd", config->brwrDelay,     "Delay for borrowers")
 		ELSEIF_CHECK_INT_PARAM("-br", config->brwrRqstSize,  "Size of borrower requests")
+		ELSEIF_CHECK_INT_PARAM("-bo", config->brwrOffset,    "Random delay offset for borrowers")
 		ELSEIF_CHECK_INT_PARAM("-ld", config->lbrnDelay,     "Delay for librarian")
 		ELSEIF_CHECK_INT_PARAM("-lr", config->lbrnRqstSize,  "Size of librarian requests")
 		ELSEIF_CHECK_INT_PARAM("-rn", config->lbryBookRange, "Range of book numbers")
 		ELSEIF_CHECK_INT_PARAM("-nb", config->lbryNumBooks,  "Number of books")
 		else
 		{
+			success = 0;
+        	terminal_settextred(1);
 			printf("Unrecognised command line value!\n");
+			terminal_reset();
 		}
 	}
-	if (success)
-		printf("-------------------------------------------------------------------------------\n");
-	else
-		display_help();
+
+	printf("-------------------------------------------------------------------------------\n");
+	if (!success) display_help();
 	return success;
 }
 
@@ -220,5 +231,6 @@ main (int argc, char *argv[])
 	printf("-------------------------------------------------------------------------------\n");
 	printf("Program Complete\n");
 	printf("-------------------------------------------------------------------------------\n");
+	printf("\n\n");
 	return 0;
 }

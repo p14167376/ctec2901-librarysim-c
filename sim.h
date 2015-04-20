@@ -14,6 +14,7 @@ typedef struct
 	int timeLimit;
 	int brwrQty;
 	int brwrDelay;
+	int brwrOffset;
 	int brwrRqstSize;
 	int lbrnDelay;
 	int lbrnRqstSize;

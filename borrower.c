@@ -97,7 +97,9 @@ void* borrower_run (void* arg)
 	int action;
 	while (!shutdown)
 	{
-		millisleep_allowing_shutdown (config.brwrDelay);
+		long delay = config.brwrDelay + (rand()%config.brwrOffset);
+		millisleep_allowing_shutdown (delay);
+		//millisleep_allowing_shutdown (config.brwrDelay);
 
 		if (!shutdown)
 		{
