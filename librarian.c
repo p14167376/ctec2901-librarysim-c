@@ -27,12 +27,8 @@
 #include "msg_queue.h"
 #include "librarian.h"
 #include "library.h"
+#include "sim.h"
 
-
-#define LIBRARIAN_NUMBOOKSTOADD   60
-#define LIBRARIAN_DELAY         2000 // milliseconds
-#define LIBRARIAN_MAXBOOKSRQST     5
-#define LIBRARIAN_MAXLOANSRQST     5
 
 typedef struct
 {
@@ -46,9 +42,9 @@ void librarian_ADD (librarian_t* lbrn)
 	list* templist = new_list(set_ints_compare);
 
 	int n;
-	for (n=0; n<LIBRARIAN_NUMBOOKSTOADD; n++)
+	for (n=0; n<config.lbryNumBooks; n++)
 	{
-		long id = rand()%LIBRARY_MAXBOOKIDS;
+		long id = rand() % config.lbryBookRange;
 		list_ins_after(templist, (any)id);
 	}
 	msg_client_send (lbrn->client, "ADD", (any)templist);
@@ -62,10 +58,10 @@ void librarian_BOOKS (librarian_t* lbrn)
 	set* tempset = set_ints_create();
 
 	int n;
-	int max = (rand() % (LIBRARIAN_MAXBOOKSRQST - 1)) + 1;
+	int max = (rand() % (config.lbrnRqstSize - 1)) + 1;
 	for (n=0;n<max; n++)
 	{
-		long id = rand()%LIBRARY_MAXBOOKIDS;
+		long id = rand() % config.lbryBookRange;
 		set_insertInto(tempset, (any)id);
 	}
 	msg_client_send (lbrn->client, "BOOKS", tempset);
@@ -79,7 +75,7 @@ void librarian_LOANS (librarian_t* lbrn)
 	set* tempset = set_ints_create();
 
 	int n;
-	int max = (rand() % (LIBRARIAN_MAXLOANSRQST - 1)) + 1;
+	int max = (rand() % (config.lbrnRqstSize - 1)) + 1;
 	for (n=0;n<max; n++)
 	{
 		long id = rand() % lbrn->numBorrowers;
@@ -105,7 +101,7 @@ void* librarian_run (void* arg)
 	int action;
 	while (!shutdown)
 	{
-		millisleep_allowing_shutdown (LIBRARIAN_DELAY);
+		millisleep_allowing_shutdown (config.lbrnDelay);
 
 		if (!shutdown)
 		{

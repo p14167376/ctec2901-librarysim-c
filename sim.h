@@ -8,4 +8,20 @@
 #define SIM_H
 
 
+
+typedef struct 
+{
+	int timeLimit;
+	int brwrQty;
+	int brwrDelay;
+	int brwrRqstSize;
+	int lbrnDelay;
+	int lbrnRqstSize;
+	int lbryBookRange;
+	int lbryNumBooks;
+} config_t;
+
+extern config_t config;
+
+
 #endif//SIM_H

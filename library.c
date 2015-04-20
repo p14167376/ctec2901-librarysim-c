@@ -287,7 +287,7 @@ void library_RGST(library_t* lib, any payload)
 
 	int* id = (int*)payload;
 	*id = lib->nextId++;
-	printf ("MSG(RGST): Registered borrower (id %d)\n", *id);
+	//printf ("MSG(RGST): Registered borrower (id %d)\n", *id);
 }
 
 void library_RQST(library_t* lib, any payload)

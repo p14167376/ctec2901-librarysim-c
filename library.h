@@ -12,9 +12,6 @@
 #include "msg_queue.h"
 
 
-// TODO Make this a command line argument
-#define LIBRARY_MAXBOOKIDS 5 //20
-
 typedef struct
 {
 	int  brwr;

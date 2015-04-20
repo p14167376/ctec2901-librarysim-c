@@ -28,11 +28,20 @@
 #include "library.h"
 #include "librarian.h"
 #include "borrower.h"
+#include "sim.h"
 
 
-#define DEFAULT_BORROWERS_QTY     20
-#define DEFAULT_BORROWERS_DELAY 5000
-#define DEFAULT_LIBRARIAN_DELAY 5000
+#define DEFAULT_BORROWERS_QTY        20
+#define DEFAULT_BORROWERS_DELAY    5000
+#define DEFAULT_BORROWER_RQSTSIZE     5
+#define DEFAULT_LIBRARIAN_DELAY    5000
+#define DEFAULT_LIBRARIAN_RQSTSIZE    5
+#define DEFAULT_LIBRARY_BOOKRANGE    20
+#define DEFAULT_LIBRARY_NUMBOOKS     60
+
+// global (ugly but practical)
+// with more time would be worth creating accessor functions
+config_t config;
 
 
 #define SAFE_CREATE_THREAD(t,a,f,d)                                    \
@@ -64,27 +73,24 @@ void* userinput_run (void* x)
 	printf("\nPROGRAM TERMINATED BY USER\n");
 }
 
-typedef struct 
-{
-	int timeLimit;
-	int brwrQty;
-	int brwrDelay;
-	int lbrnDelay;
-} config_t;
-
 void display_help()
 {
-	printf("\n");
+	printf("\n\n");
 	printf("Command Line Arguments for 'sim':\n");
 	printf("\n");
 	printf("'-?''    Display this help page.\n");
-	printf("'-t  N'  Set the time limit for the simulation in seconds (e.g. '-t 30')\n");
-	printf("'-bq N'  Set the borrower quantity (e.g. '-bq 30')\n");
-	printf("'-bd N'  Set the borrower delay in milliseconds (e.g. '-bd 1000')\n");
-	printf("'-ld N'  Set the librarian delay in milliseconds (e.g. '-ld 5000')\n");
+	printf("'-t  N'  Time limit for the simulation in seconds (e.g. '-t 30')\n");
+	printf("'-bn N'  Number of borrowers (e.g. '-bn 30')\n");
+	printf("'-bd N'  Borrower delay in milliseconds (e.g. '-bd 1000')\n");
+	printf("'-br N'  Borrower request size (books to request per message))\n");
+	printf("'-ld N'  Librarian delay in milliseconds (e.g. '-ld 5000')\n");
+	printf("'-lr N'  Librarian request size (books/loans per message))\n");
+	printf("'-rn N'  Range of book numbers (e.g. '20' gives book ids from 0 to 19)\n");
+	printf("'-nb N'  Number of books to add to the library (random ids from the given range\n");
 	printf("\n");
 }
 
+// Boilerplate code for handling parameters with int values
 #define ELSEIF_CHECK_INT_PARAM(param,var,desc)\
 	else if (strncmp(argv[n], param, strlen(param)) == 0)        \
 	{                                                            \
@@ -102,12 +108,18 @@ void display_help()
 		}                                                        \
 	}
 
+// Process the command line
+// Display help if requested or on any error
 int process_cmdline(int argc, char *argv[], config_t* config)
 {
-	config->timeLimit    = 0; // 0 is infinite
-	config->brwrQty      = DEFAULT_BORROWERS_QTY;
-	config->brwrDelay    = DEFAULT_BORROWERS_DELAY;
-	config->lbrnDelay    = DEFAULT_LIBRARIAN_DELAY;
+	config->timeLimit     = 0; // 0 is infinite
+	config->brwrQty       = DEFAULT_BORROWERS_QTY;
+	config->brwrDelay     = DEFAULT_BORROWERS_DELAY;
+	config->brwrRqstSize  = DEFAULT_BORROWER_RQSTSIZE;
+	config->lbrnDelay     = DEFAULT_LIBRARIAN_DELAY;
+	config->lbrnRqstSize  = DEFAULT_LIBRARIAN_RQSTSIZE;
+	config->lbryBookRange = DEFAULT_LIBRARY_BOOKRANGE;
+	config->lbryNumBooks  = DEFAULT_LIBRARY_NUMBOOKS;
 
 	int n;
 	int success = 1;
@@ -120,22 +132,29 @@ int process_cmdline(int argc, char *argv[], config_t* config)
 			success = 0;
 			break;
 		}
-		ELSEIF_CHECK_INT_PARAM("-bq", config->brwrQty,   "Number of borrowers")
-		ELSEIF_CHECK_INT_PARAM("-bd", config->brwrDelay, "Delay for borrowers")
-		ELSEIF_CHECK_INT_PARAM("-ld", config->lbrnDelay, "Delay for librarian")
-		ELSEIF_CHECK_INT_PARAM("-t",  config->timeLimit, "Time limit for simulation")
+		ELSEIF_CHECK_INT_PARAM("-t",  config->timeLimit,     "Time limit for simulation")
+		ELSEIF_CHECK_INT_PARAM("-bn", config->brwrQty,       "Number of borrowers")
+		ELSEIF_CHECK_INT_PARAM("-bd", config->brwrDelay,     "Delay for borrowers")
+		ELSEIF_CHECK_INT_PARAM("-br", config->brwrRqstSize,  "Size of borrower requests")
+		ELSEIF_CHECK_INT_PARAM("-ld", config->lbrnDelay,     "Delay for librarian")
+		ELSEIF_CHECK_INT_PARAM("-lr", config->lbrnRqstSize,  "Size of librarian requests")
+		ELSEIF_CHECK_INT_PARAM("-rn", config->lbryBookRange, "Range of book numbers")
+		ELSEIF_CHECK_INT_PARAM("-nb", config->lbryNumBooks,  "Number of books")
 		else
 		{
 			printf("Unrecognised command line value!\n");
 		}
 	}
-	if (!success) display_help();
+	if (success)
+		printf("-------------------------------------------------------------------------------\n");
+	else
+		display_help();
 	return success;
 }
 
 main_simulation (config_t* config)
 {
-	srand(time(NULL));
+	assert(config != NULL);
 
 	// Prepare thread attribute
 	pthread_attr_t attr;
@@ -163,6 +182,7 @@ main_simulation (config_t* config)
 	// Wait for timeout or indefinitely...
 	if (config->timeLimit > 0)
 	{
+		printf("Time limit set to %d", config->timeLimit);
 		sleep_allowing_shutdown(config->timeLimit);
 		if(!shutdown)
 		{
@@ -186,14 +206,12 @@ main_simulation (config_t* config)
 
 main (int argc, char *argv[])
 {
-	// Read command line arguments...
-	// TODO
 	printf("\n\n");
 	printf("===============================================================================\n");
 	printf("CTEC2901: Library Simulator                                   (Barnaby Stewart)\n");
 	printf("===============================================================================\n");
 
-	config_t config;
+	srand(time(NULL));
 	if (process_cmdline(argc, argv, &config) != 0)
 	{
 		main_simulation(&config);

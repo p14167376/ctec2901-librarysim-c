@@ -13,7 +13,7 @@ sources = makefile\
 	borrower.h borrower.c\
 	librarian.h librarian.c\
 	library.h library.c\
-	sim.c
+	sim.h sim.c
 objfiles = mvar.o set_ints.o avl_any.o shutdown.o msg_queue.o borrower.o librarian.o library.o sim.o
 derived = $(objfiles) sim
 

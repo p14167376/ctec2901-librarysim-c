@@ -33,10 +33,8 @@
 #include "msg_queue.h"
 #include "borrower.h"
 #include "library.h"
+#include "sim.h"
 
-
-#define BORROWER_DELAY        2000 // milliseconds
-#define BORROWER_MAXBOOKSRQST    5
 
 typedef struct
 {
@@ -51,10 +49,10 @@ void borrower_RQST(borrower_t* brwr)
 	set* tempset = set_ints_create();
 
 	int n;
-	int max = (rand() % (BORROWER_MAXBOOKSRQST - 1)) + 1;
+	int max = (rand() % (config.brwrRqstSize - 1)) + 1;
 	for (n=0;n<max; n++)
 	{
-		long id = rand()%LIBRARY_MAXBOOKIDS;
+		long id = rand() % config.lbryBookRange;
 		if (!set_isin(brwr->myBooks, (any)id))
 		{
 			set_insertInto(tempset, (any)id);
@@ -99,7 +97,7 @@ void* borrower_run (void* arg)
 	int action;
 	while (!shutdown)
 	{
-		millisleep_allowing_shutdown (BORROWER_DELAY);
+		millisleep_allowing_shutdown (config.brwrDelay);
 
 		if (!shutdown)
 		{

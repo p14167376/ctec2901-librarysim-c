@@ -43,10 +43,8 @@ msg_queue_t* msg_queue_create()
     return msgq;
 }
 
-void msg_queue_release(msg_queue_t* msgq)
+void msg_queue_ackall(msg_queue_t* msgq)
 {
-	assert(msgq != NULL);
-
 	// Ack and remove any waiting messages...
 	// (must ack to wake any waiting client threads)
 	msg_client_t* client;
@@ -55,6 +53,13 @@ void msg_queue_release(msg_queue_t* msgq)
 		client = (msg_client_t*)queue_any_dequeue(msgq->messages);
 		put_mvar(client->ack, 0);
 	}
+}
+
+void msg_queue_release(msg_queue_t* msgq)
+{
+	assert(msgq != NULL);
+
+	msg_queue_ackall (msgq);
     queue_any_release (msgq->messages);
     pthread_cond_destroy(&msgq->msg_waiting);
     pthread_mutex_destroy(&msgq->mutex);
@@ -122,6 +127,7 @@ void msg_client_ack (msg_client_t* client)
 void msg_queue_nudge (msg_queue_t* msgq)
 {
 	pthread_cond_broadcast (&msgq->msg_waiting);
+	msg_queue_ackall(msgq);
 }
 
 msg_client_t* msg_queue_getclient (msg_queue_t* msgq)
