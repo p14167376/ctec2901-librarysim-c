@@ -87,11 +87,12 @@ void borrower_RTRN(borrower_t* brwr)
 void* borrower_run (void* arg)
 {
 	assert(arg != NULL);
+	library_t* lib = (library_t*)arg;
 
 	borrower_t brwr;
 	brwr.id      = -1;
 	brwr.myBooks = set_ints_create();
-	brwr.client  = msg_client_create ((msg_queue_t*)arg);
+	brwr.client  = msg_client_create (library_getqueue(lib));
 
 	msg_client_send (brwr.client, "RGST", (any)(&brwr.id));
 

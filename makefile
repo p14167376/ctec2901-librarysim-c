@@ -12,17 +12,15 @@ sources = makefile\
 	msg_queue.h msg_queue.c\
 	borrower.h borrower.c\
 	librarian.h librarian.c\
-	library.h library.c
-objfiles = mvar.o set_ints.o avl_any.o shutdown.o msg_queue.o borrower.o librarian.o library.o
-derived = $(objfiles) library
+	library.h library.c\
+	sim.c
+objfiles = mvar.o set_ints.o avl_any.o shutdown.o msg_queue.o borrower.o librarian.o library.o sim.o
+derived = $(objfiles) sim
 
-all: library
+all: sim
 
-library: $(objfiles)
-	gcc -o library $(objfiles) -L$(HOME)/lib  -llist_sets -llinked_clists -llinked_queues -lm -pthread
-
-library.o: library.h library.c $(sources)
-	gcc -c library.c -I$(HOME)/include
+sim: $(objfiles)
+	gcc -o sim $(objfiles) -L$(HOME)/lib  -llist_sets -llinked_clists -llinked_queues -lm -pthread
 
 %.o : %.c
 	gcc -c $< -I$(HOME)/include

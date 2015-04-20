@@ -4,8 +4,12 @@
 // Implementation file for shutdown functionality
 // Author: Barnaby Stewart (P14167376)
 //---------------------------------------------------------------------------
-// Provides delay functions that respond to shutdown at intervals
-// NOTE: these are not accurate as additional time stopping & starting.
+// 1. A global variable to indicate shutdown.
+// Thread safety not an issue (only read or set to 1 after initialisation)
+// 2. Sleep functions which allow for shutdown
+// Sleep for short period, check shutdown, repeat until full period elapsed.
+// NOTE: Not strictly accurate as additional time used stopping & starting.
+// (but good enough for the purposes of the simulation)
 //---------------------------------------------------------------------------
 
 #include <time.h>

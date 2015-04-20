@@ -50,13 +50,13 @@
         }                                                              \
     }
 
-typedef struct
+struct library_impl
 {
 	avl_any*     books;
 	msg_queue_t* msgQueue;
 	int          numBorrowers;
 	int          nextId;
-} library_t;
+};
 
 typedef struct book_struct
 {
@@ -108,6 +108,18 @@ void library_release (library_t* lib)
 	avl_any_inorder_print (lib->books, book_free);
 	avl_any_release (lib->books);
 	msg_queue_release (lib->msgQueue);
+}
+
+void library_nudge (library_t* lib)
+{
+	assert(lib != NULL);
+	msg_queue_nudge(lib->msgQueue);
+}
+
+msg_queue_t* library_getqueue (library_t* lib)
+{
+	assert(lib != NULL);
+	return lib->msgQueue;
 }
 
 book_t* library_findbook (library_t* lib, int bookid)
@@ -365,128 +377,3 @@ void* library_run (void* arg)
 		}
 	}
 }
-
-typedef struct 
-{
-	int timeLimit;
-	int numBorrowers;
-} cmdline_t;
-
-void process_cmdline(int argc, char *argv[], cmdline_t* cmdline)
-{
-	cmdline->timeLimit    = 0;
-	cmdline->numBorrowers = DEFAULT_NUM_BORROWERS;
-
-	int n;
-	for (n=1;n<argc;n++)
-	{
-		printf("CMD LINE[%d]: '%s', ", n, argv[n]);
-		if (strncmp(argv[n], "-b", 2) == 0)
-		{
-			int scanint;
-			sscanf(argv[n], "-b%d", &scanint);
-			printf("Number of borrowers set to %d\n", scanint);
-			cmdline->numBorrowers = scanint;
-		}
-		else if (strncmp(argv[n], "-t", 2) == 0)
-		{
-			int scanint;
-			sscanf(argv[n], "-t%d", &scanint);
-			printf("Time limit set to %d seconds\n", scanint);
-			cmdline->timeLimit = scanint;
-		}
-		else
-		{
-			printf("Unrecognised!\n");
-		}
-	}
-}
-
-void* userinput_run (void* x)
-{
-    // wait for command to exit...
-    char inputBuffer[256];
-    while (!shutdown)
-    {
-    	printf ("Enter command ('q' to quit): ");
-		fgets (inputBuffer, sizeof(inputBuffer), stdin);
-		switch (inputBuffer[0])
-		{
-			case 'q':
-			case 'Q':
-				shutdown = 1;
-				break;
-		}
-    }
-	printf("\nPROGRAM TERMINATED BY USER\n");
-}
-
-main (int argc, char *argv[])
-{
-	// Read command line arguments...
-	// TODO
-	printf("\n\n");
-	printf("===============================================================================\n");
-	printf("CTEC2901: Library Simulator                                   (Barnaby Stewart)\n");
-	printf("===============================================================================\n");
-
-	// process command line...
-	cmdline_t cmdline;
-	process_cmdline(argc, argv, &cmdline);
-
-	srand(time(NULL));
-
-	// Prepare thread attribute
-	pthread_attr_t attr;
-	pthread_attr_init (&attr);
-	pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_JOINABLE);
-
-	// Create thread handles...
-	int i;
-	int numThreads = 2 + cmdline.numBorrowers;
-	SAFE_MALLOC_ARRAY(pthread_t, threads, numThreads);
-
-	// Create the main threads...
-	library_t* lib = library_create (cmdline.numBorrowers);
-	SAFE_CREATE_THREAD(&threads[0], &attr, library_run,   (void*)lib);
-	SAFE_CREATE_THREAD(&threads[1], &attr, librarian_run, (void*)lib->msgQueue);
-    for (i=2; i<numThreads; i++)
-    {
-        SAFE_CREATE_THREAD(&threads[i],
-        	&attr, borrower_run, (void*)lib->msgQueue);
-    }
-
-	// And one to check for user input...
-    pthread_t inputThread;
-    SAFE_CREATE_THREAD(&inputThread, &attr, userinput_run, 0);
-
-	// Wait for timeout or indefinitely...
-	if (cmdline.timeLimit > 0)
-	{
-		sleep_allowing_shutdown(cmdline.timeLimit);
-		if(!shutdown)
-		{
-			printf("\nPROGRAM TERMINATED BY TIMEOUT\n");
-			pthread_cancel(inputThread);
-			shutdown = 1;
-		}
-	}
-	else while(!shutdown) sleep(1);
-
-	// nudge the queue in case it's waiting...
-	msg_queue_nudge(lib->msgQueue);
-	for (i=0; i<numThreads; i++)
-	{
-		pthread_join(threads[i], NULL);
-	}
-	library_release (lib);
-
-	pthread_attr_destroy(&attr);
-
-	printf("-------------------------------------------------------------------------------\n");
-	printf("Program Complete\n");
-	printf("-------------------------------------------------------------------------------\n");
-	return 0;
-}
-
-

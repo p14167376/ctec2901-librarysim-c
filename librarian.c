@@ -93,9 +93,10 @@ void librarian_LOANS (librarian_t* lbrn)
 void* librarian_run (void* arg)
 {
 	assert(arg != NULL);
+	library_t* lib = (library_t*)arg;
 
 	librarian_t lbrn;
-	lbrn.client = msg_client_create ((msg_queue_t*)arg);
+	lbrn.client = msg_client_create (library_getqueue(lib));
 
 	msg_client_send (lbrn.client, "GETNB", (any)(&lbrn.numBorrowers));
 
